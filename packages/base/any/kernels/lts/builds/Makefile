@@ -19,7 +19,7 @@ endif
 export K_TARGET_DIR := $(KERNEL_BUILD_DIR)/$(ONL_DEBIAN_SUITE)
 
 kernel: setup
-	$(MAKE) -C $(ONL)/packages/base/any/kernels/$(KERNEL_LTS_VERSION)-lts/configs/$(KERNEL_CONFIG) $(ONL_MAKE_PARALLEL)
+	$(MAKE) -C $(ONLBASE)/packages/base/any/kernels/$(KERNEL_LTS_VERSION)-lts/configs/$(KERNEL_CONFIG) $(ONL_MAKE_PARALLEL)
 	cd $(K_TARGET_DIR) && ARCH=$(KERNEL_ARCH) $(ONL)/tools/scripts/kmodbuild.sh linux-*-mbuild "$(wildcard $(ONL)/packages/base/any/kernels/modules/*)" onl/onl/common
 
 clean:
