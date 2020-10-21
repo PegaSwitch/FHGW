@@ -1,0 +1,21 @@
+variables:
+  platformbase: x86-64-pegatron-fm-6609-bn-ff
+  r0_install: /lib/platform-config/${platformbase}-r0/onl
+
+common:
+  version: 1.0.0
+  arch: amd64
+  copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+  maintainer: support@bigswitch.com
+  support: opennetworklinux@googlegroups.com
+  changelog:  Change changes changes.,
+
+
+packages:
+  - name: onlp-${platformbase}-r0
+    summary: ONLP Package for the ${platformbase}-r0 platform.
+    platform-config: True
+
+    files:
+      builds/lib/$BUILD_DIR/x86_64-linux-gnu/bin/libonlp-${platformbase}.so : ${r0_install}/lib/
+      builds/onlpdump/$BUILD_DIR/x86_64-linux-gnu/bin/onlps : ${r0_install}/bin/onlpdump

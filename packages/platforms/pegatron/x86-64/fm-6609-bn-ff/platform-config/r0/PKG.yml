@@ -1,0 +1,1 @@
+!include $ONL_TEMPLATES/platform-config-platform.yml ARCH=amd64 VENDOR=pegatron BASENAME=x86-64-pegatron-fm-6609-bn-ff REVISION=r0
