@@ -53,15 +53,15 @@ docker_check:
 	@which docker > /dev/null || (echo "*** Docker appears to be missing. Please install docker.io in order to build OpenNetworkLinux." && exit 1)
 
 docker: docker_check
-	@docker/tools/onlbuilder -$(VERSION) --isolate --hostname onlbuilder$(VERSION) --pull --autobuild --non-interactive
+	@OpenNetworkLinux/docker/tools/onlbuilder -$(VERSION) --isolate --hostname onlbuilder$(VERSION) --pull --autobuild --non-interactive
 
 # create an interative docker shell, for debugging builds
 docker-debug: docker_check
-	@docker/tools/onlbuilder -$(VERSION) --isolate --hostname onlbuilder$(VERSION) --pull
+	@OpenNetworkLinux/docker/tools/onlbuilder -$(VERSION) --isolate --hostname onlbuilder$(VERSION) --pull
 
 
 versions:
 	$(ONL)/tools/make-versions.py --import-file=$(ONL)/tools/onlvi --class-name=OnlVersionImplementation --output-dir $(ONL)/make/versions --force
 
 relclean:
-	@find $(ONL)/RELEASE -name "ONL-*" -delete
+	@find $(ONLBASE)/RELEASE -name "ONL-*" -delete
