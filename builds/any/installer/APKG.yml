@@ -1,0 +1,28 @@
+variables:
+  !include $ONL/make/versions/version-onl.yml
+
+prerequisites:
+  broken: true
+  packages: [ "onl-swi:$ARCH" ]
+
+common:
+  arch: $ARCH
+  version: 0.$FNAME_RELEASE_ID
+  copyright: Copyright 2016 Big Switch Networks
+  maintainer: support@bigswitch.com
+  support: opennetworklinux@googlegroups.com
+
+packages:
+  - name: onl-installer-$BOOTMODE
+    summary: Open Network Linux $ARCH Installer
+
+    files:
+      builds/$ONL_DEBIAN_SUITE/*INSTALLER        : $$PKG_INSTALL/
+      builds/$ONL_DEBIAN_SUITE/*.md5sum          : $$PKG_INSTALL/
+
+    changelog:  Change changes changes.,
+
+
+release:
+  - builds/$ONL_DEBIAN_SUITE/*INSTALLER : $ARCH/
+  - builds/$ONL_DEBIAN_SUITE/*.md5sum   : $ARCH/

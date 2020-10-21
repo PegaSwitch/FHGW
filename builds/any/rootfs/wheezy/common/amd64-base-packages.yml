@@ -1,0 +1,15 @@
+############################################################
+#
+# Common packages for all amd64 systems.
+#
+############################################################
+- dmidecode
+- parted
+- smartmontools
+- grub2
+- onl-upgrade
+
+
+
+
+

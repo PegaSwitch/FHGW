@@ -1,0 +1,23 @@
+variables:
+  !include $ONL/make/versions/version-onl.yml
+
+prerequisites:
+  broken: true
+
+common:
+  arch: $ARCH
+  version: 0.$FNAME_RELEASE_ID
+  copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+  maintainer: support@bigswitch.com
+  support: opennetworklinux@googlegroups.com
+
+packages:
+  - name: onl-rootfs
+    summary: Open Network Linux Root Filesystem
+
+    files:
+      builds/$ONL_DEBIAN_SUITE/rootfs-$ARCH.cpio.gz : $$PKG_INSTALL/
+      builds/$ONL_DEBIAN_SUITE/rootfs-$ARCH.sqsh : $$PKG_INSTALL/
+      builds/$ONL_DEBIAN_SUITE/manifest.json : $$PKG_INSTALL/
+
+    changelog:  Change changes changes.,
