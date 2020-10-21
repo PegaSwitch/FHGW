@@ -1,0 +1,26 @@
+prerequisites:
+    packages:
+      - onl-kernel-3.16-lts-x86-64-all:amd64
+      - onl-kernel-4.9-lts-x86-64-all:amd64
+      - onl-kernel-4.14-lts-x86-64-all:amd64
+      - onl-kernel-4.19-lts-x86-64-all:amd64
+      - onl-kernel-5.4-lts-x86-64-all:amd64
+      - onl-loader-initrd:amd64
+    stage: 3
+
+common:
+  arch: amd64
+  version: 1.0.0
+  copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+  maintainer: support@bigswitch.com
+  support: opennetworklinux@googlegroups.com
+
+packages:
+  - name: onl-upgrade
+    version: 1.0.0
+    summary: Open Network Linux Upgrade package for AMD64 platforms.
+
+    files:
+      builds/files : /etc/onl/upgrade/amd64
+
+    changelog:  Change changes changes.,
