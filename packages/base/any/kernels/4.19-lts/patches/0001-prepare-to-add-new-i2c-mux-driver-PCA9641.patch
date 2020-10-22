@@ -1,0 +1,151 @@
+ drivers/i2c/muxes/i2c-mux-pca9541.c | 58 ++++++++++++++++++++++-------
+ 1 file changed, 44 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/i2c/muxes/i2c-mux-pca9541.c b/drivers/i2c/muxes/i2c-mux-pca9541.c
+index 9e75d6b91..8d9cd4639 100644
+--- a/drivers/i2c/muxes/i2c-mux-pca9541.c
++++ b/drivers/i2c/muxes/i2c-mux-pca9541.c
+@@ -58,11 +58,6 @@
+ #define PCA9541_ISTAT_MYTEST	(1 << 6)
+ #define PCA9541_ISTAT_NMYTEST	(1 << 7)
+ 
+-#define BUSON		(PCA9541_CTL_BUSON | PCA9541_CTL_NBUSON)
+-#define MYBUS		(PCA9541_CTL_MYBUS | PCA9541_CTL_NMYBUS)
+-#define mybus(x)	(!((x) & MYBUS) || ((x) & MYBUS) == MYBUS)
+-#define busoff(x)	(!((x) & BUSON) || ((x) & BUSON) == BUSON)
+-
+ /* arbitration timeouts, in jiffies */
+ #define ARB_TIMEOUT	(HZ / 8)	/* 125 ms until forcing bus ownership */
+ #define ARB2_TIMEOUT	(HZ / 4)	/* 250 ms until acquisition failure */
+@@ -71,14 +66,35 @@
+ #define SELECT_DELAY_SHORT	50
+ #define SELECT_DELAY_LONG	1000
+ 
++static void pca9541_release_bus(struct i2c_client *client);
++static int pca9541_arbitrate(struct i2c_client *client);
++
++enum pca_type {
++        pca_9541,
++};
++
++struct chip_desc {
++        void (*release_bus)(struct i2c_client *client);
++        int (*arbitrate)(struct i2c_client *client);
++};
++
+ struct pca9541 {
++        const struct chip_desc *chip;
++
+ 	struct i2c_client *client;
+ 	unsigned long select_timeout;
+ 	unsigned long arb_timeout;
+ };
+ 
++static const struct chip_desc chips[] = {
++        [pca_9541] = {
++                .release_bus = pca9541_release_bus,
++                .arbitrate = pca9541_arbitrate,
++        },
++};
++
+ static const struct i2c_device_id pca9541_id[] = {
+-	{"pca9541", 0},
++	{ "pca9541", pca_9541 },
+ 	{}
+ };
+ 
+@@ -86,7 +102,7 @@ MODULE_DEVICE_TABLE(i2c, pca9541_id);
+ 
+ #ifdef CONFIG_OF
+ static const struct of_device_id pca9541_of_match[] = {
+-	{ .compatible = "nxp,pca9541" },
++	{ .compatible = "nxp,pca9541", .data = &chips[pca_9541] },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, pca9541_of_match);
+@@ -124,16 +140,29 @@ static int pca9541_reg_read(struct i2c_client *client, u8 command)
+ }
+ 
+ /*
+- * Arbitration management functions
++ * 9541 Arbitration management functions
+  */
+ 
++#define BUSON		(PCA9541_CTL_BUSON | PCA9541_CTL_NBUSON)
++#define MYBUS		(PCA9541_CTL_MYBUS | PCA9541_CTL_NMYBUS)
++
++static inline int pca9541_busoff(int reg)
++{
++        return !(reg & BUSON) || (reg & BUSON) == BUSON;
++}
++
++static inline int pca9541_mybus(int reg)
++{
++        return !(reg & MYBUS) || (reg & MYBUS) == MYBUS;
++}
++
+ /* Release bus. Also reset NTESTON and BUSINIT if it was set. */
+ static void pca9541_release_bus(struct i2c_client *client)
+ {
+ 	int reg;
+ 
+ 	reg = pca9541_reg_read(client, PCA9541_CONTROL);
+-	if (reg >= 0 && !busoff(reg) && mybus(reg))
++	if (reg >= 0 && !pca9541_busoff(reg) && pca9541_mybus(reg))
+ 		pca9541_reg_write(client, PCA9541_CONTROL,
+ 				  (reg & PCA9541_CTL_NBUSON) >> 1);
+ }
+@@ -185,7 +214,7 @@ static int pca9541_arbitrate(struct i2c_client *client)
+ 	if (reg < 0)
+ 		return reg;
+ 
+-	if (busoff(reg)) {
++	if (pca9541_busoff(reg)) {
+ 		int istat;
+ 		/*
+ 		 * Bus is off. Request ownership or turn it on unless
+@@ -210,7 +239,7 @@ static int pca9541_arbitrate(struct i2c_client *client)
+ 			 */
+ 			data->select_timeout = SELECT_DELAY_LONG * 2;
+ 		}
+-	} else if (mybus(reg)) {
++	} else if (pca9541_mybus(reg)) {
+ 		/*
+ 		 * Bus is on, and we own it. We are done with acquisition.
+ 		 * Reset NTESTON and BUSINIT, then return success.
+@@ -258,7 +287,7 @@ static int pca9541_select_chan(struct i2c_mux_core *muxc, u32 chan)
+ 		/* force bus ownership after this time */
+ 
+ 	do {
+-		ret = pca9541_arbitrate(client);
++		ret = data->chip->arbitrate(client);
+ 		if (ret)
+ 			return ret < 0 ? ret : 0;
+ 
+@@ -276,7 +305,7 @@ static int pca9541_release_chan(struct i2c_mux_core *muxc, u32 chan)
+ 	struct pca9541 *data = i2c_mux_priv(muxc);
+ 	struct i2c_client *client = data->client;
+ 
+-	pca9541_release_bus(client);
++        data->chip->release_bus(client);
+ 	return 0;
+ }
+ 
+@@ -301,7 +330,7 @@ static int pca9541_probe(struct i2c_client *client,
+ 	 * We have to lock the I2C segment before releasing the bus.
+ 	 */
+ 	i2c_lock_bus(adap, I2C_LOCK_SEGMENT);
+-	pca9541_release_bus(client);
++	(chips[id->driver_data].release_bus)(client);
+ 	i2c_unlock_bus(adap, I2C_LOCK_SEGMENT);
+ 
+ 	/* Create mux adapter */
+@@ -317,6 +346,7 @@ static int pca9541_probe(struct i2c_client *client,
+ 
+ 	data = i2c_mux_priv(muxc);
+ 	data->client = client;
++        data->chip = &chips[id->driver_data];
+ 
+ 	i2c_set_clientdata(client, muxc);
+ 
+
