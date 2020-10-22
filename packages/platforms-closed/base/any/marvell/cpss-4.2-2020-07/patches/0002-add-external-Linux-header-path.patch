@@ -1,0 +1,25 @@
+From f70c869bdfb9104e793d3f484f8e5e7ee7effe1e Mon Sep 17 00:00:00 2001
+From: Max Lee <max_lee@pegatroncorp.com>
+Date: Tue, 25 Aug 2020 10:09:29 +0000
+Subject: [PATCH 2/9] add external Linux header path
+
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index d63c6000..be9be72c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -533,7 +533,7 @@ ifneq ($(GM),)
+  WIN32_CFLAGS += -MTd
+ endif
+ CFLAGS := -Wall -Wextra -Wno-error=cpp $(CAST) -ansi $(TARGET_SPECIFIC_CFLAGS) -fno-builtin -funroll-loops \
+-           $(SHARED_CFLAGS) $(addprefix -I, $(CPSS_INC_PATH)) $(CFLAGS)
++           $(SHARED_CFLAGS) $(addprefix -I, $(KERNEL_INC_PATH) $(CPSS_INC_PATH)) $(CFLAGS)
+ #-Wno-cast-function-type  -Wextra
+ 
+ ################# Create list of objects and libs #################
+-- 
+2.28.0
+

@@ -1,0 +1,3332 @@
+From 6477bd7d3175b930734702845a1dd240d507d47a Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Fri, 12 Jun 2020 16:58:13 +0800
+Subject: [PATCH 3/9] 1. Add Pegatron Gemini customized patch. 2. Modfiy
+ toolchain setting for Yocto Linux toolchain.
+
+---
+ .../mainExtDrv/h/gtExtDrv/drivers/gtGenDrv.h  |    4 +-
+ .../mainOs/src/gtOs/linux/osLinuxMem.c        |    4 +-
+ .../boardConfig/gtDbDxBoardTypeConfig.h       |    2 +
+ .../src/appDemo/boardConfig/dxFamilyBoards.c  |    2 +-
+ .../src/appDemo/boardConfig/gtDbDxFalcon.c    |  325 +-
+ .../src/appDemo/entryPoints/linux/_Makefile   |    2 +-
+ .../src/appDemo/entryPoints/linux/main.c      |    5 +
+ .../appDemo/entryPoints/linux/mfg_gemini.c    | 2648 +++++++++++++++++
+ .../src/extUtils/luaCLI/luaCLIEngineCLI.c     |   39 +
+ 9 files changed, 3025 insertions(+), 6 deletions(-)
+ create mode 100644 cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+
+diff --git a/cpssEnabler/mainExtDrv/h/gtExtDrv/drivers/gtGenDrv.h b/cpssEnabler/mainExtDrv/h/gtExtDrv/drivers/gtGenDrv.h
+index 9fd3c341..089b2307 100644
+--- a/cpssEnabler/mainExtDrv/h/gtExtDrv/drivers/gtGenDrv.h
++++ b/cpssEnabler/mainExtDrv/h/gtExtDrv/drivers/gtGenDrv.h
+@@ -68,7 +68,9 @@ extern "C" {
+ #define EXT_DRV_FALCON_6_4_TH_ID                    (EXT_DRV_FALCON_MARVELL_BOARD_ID_BASE + 3)
+ #define EXT_DRV_FALCON_2_TH_ID                      (EXT_DRV_FALCON_MARVELL_BOARD_ID_BASE + 4)
+ #define EXT_DRV_FALCON_2T_4T_ID                     (EXT_DRV_FALCON_MARVELL_BOARD_ID_BASE + 5)
+-#define EXT_DRV_FALCON_MARVELL_MAX_BOARD_ID         (EXT_DRV_FALCON_MARVELL_BOARD_ID_BASE + 6)
++/* Marvell Vivid add PEGA , so Jenny modify max+1 */
++#define EXT_DRV_FALCON_6_4_PEGA_ID                  (EXT_DRV_FALCON_MARVELL_BOARD_ID_BASE + 6)
++#define EXT_DRV_FALCON_MARVELL_MAX_BOARD_ID         (EXT_DRV_FALCON_MARVELL_BOARD_ID_BASE + 7)
+ 
+ /**
+ * @internal extDrvSoCInit function
+diff --git a/cpssEnabler/mainOs/src/gtOs/linux/osLinuxMem.c b/cpssEnabler/mainOs/src/gtOs/linux/osLinuxMem.c
+index 5defecea..007cb247 100644
+--- a/cpssEnabler/mainOs/src/gtOs/linux/osLinuxMem.c
++++ b/cpssEnabler/mainOs/src/gtOs/linux/osLinuxMem.c
+@@ -854,7 +854,7 @@ GT_VOID *osCacheDmaMalloc
+         }
+         if (freePtr)
+         {
+-fprintf(stderr,"Reuse from 'free' chain : Allocating %d bytes for DMA\n", size);
++/*fprintf(stderr,"Reuse from 'free' chain : Allocating %d bytes for DMA\n", size);*/    /* Pegatron Jenny mark-off due to message flush console. */
+             /* remove from chain */
+             *prev = freePtr->next_elem;
+             hdrPtr = (OSMEM_NOPOOLS_HDR_STC*)freePtr;
+@@ -953,7 +953,7 @@ GT_STATUS osCacheDmaFree
+         }
+         freePtr = (OSMEM_POOL_FREE_ELEM_PTR)oldHdr;
+         freePtr->size = oldHdr->size;
+-        fprintf(stderr,"free %d bytes to DMA\n", oldHdr->size);
++        /*fprintf(stderr,"free %d bytes to DMA\n", oldHdr->size);*/    /* Pegatron Jenny mark-off due to message flush console. */
+         /* put to chain */
+         osMutexLock(freeDmaPoolMtx);
+         freePtr->next_elem = freeDmaPool;
+diff --git a/cpssEnabler/mainSysConfig/h/appDemo/boardConfig/gtDbDxBoardTypeConfig.h b/cpssEnabler/mainSysConfig/h/appDemo/boardConfig/gtDbDxBoardTypeConfig.h
+index 9e0e2409..09e645d5 100644
+--- a/cpssEnabler/mainSysConfig/h/appDemo/boardConfig/gtDbDxBoardTypeConfig.h
++++ b/cpssEnabler/mainSysConfig/h/appDemo/boardConfig/gtDbDxBoardTypeConfig.h
+@@ -49,6 +49,8 @@ extern "C" {
+ #define APP_DEMO_FALCON_BOARD_6_4_TH_CNS        (EXT_DRV_FALCON_6_4_TH_ID)
+ #define APP_DEMO_FALCON_BOARD_2_TH_CNS          (EXT_DRV_FALCON_2_TH_ID)
+ #define APP_DEMO_FALCON_BOARD_2T_4T_CNS         (EXT_DRV_FALCON_2T_4T_ID)
++/* Marvell Vivid add PEGA */
++#define APP_DEMO_FALCON_BOARD_PEGA_6_4_ID_CNS   (EXT_DRV_FALCON_6_4_PEGA_ID)
+ 
+ /* xcat3x : A0,Z0 */
+ #define APP_DEMO_XCAT3X_A0_BOARD_DB_CNS         (EXT_DRV_XCAT3X_A0_DB_ID)
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/dxFamilyBoards.c b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/dxFamilyBoards.c
+index 2fd40098..b62376ee 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/dxFamilyBoards.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/dxFamilyBoards.c
+@@ -158,7 +158,7 @@ GT_BOARD_LIST_ELEMENT   boardsList[] =
+                                       ,"6.4T TH - 256 ports mode (maxMac)"                   /* 5*/
+                                       ,"2T TH"                                               /* 6*/
+                                       ,"2T/4T"                                               /* 7*/
+-                                      ,GT_BOARD_LIST_NOT_USE_REVISION_STR_CNS                /* 8*/
++                                      ,"Pega 6.4T"                                           /* 8*/
+                                       ,GT_BOARD_LIST_NOT_USE_REVISION_STR_CNS                /* 9*/
+                                       ,GT_BOARD_LIST_NOT_USE_REVISION_STR_CNS                /*10*/
+                                       ,GT_BOARD_LIST_NOT_USE_REVISION_STR_CNS                /*11*/
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c
+index 8c569f56..14866c3d 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c
+@@ -298,6 +298,17 @@ static CPSS_PORT_MAC_TO_SERDES_STC  falcon_DB_MacToSerdesMap[] =
+    {{0,4,1,5,2,6,3,7}}   /*248-255*/ /*Raven 15*/
+ };
+ 
++/* PEGA Jenny */
++static CPSS_PORT_MAC_TO_SERDES_STC  falcon_Pega_MacToSerdesMap[] =
++{
++  
++   {{2,3,1,0,7,6,4,5}},  /*96-103*/  /*Raven 6 */
++   {{4,5,6,7,0,1,2,3}},  /*104-111*/ /*Raven 6 */
++   {{2,3,1,0,7,6,4,5}},  /*112-119*/ /*Raven 7 */
++   {{4,6,5,7,0,1,3,2}},  /*120-127*/ /*Raven 7 */
++ 
++};
++
+ static CPSS_PORT_MAC_TO_SERDES_STC  falcon_Belly2Belly_MacToSerdesMap[] =
+ {
+    {{0,7,2,4,1,5,3,6}},  /* 0-7*/    /*Raven 0 */
+@@ -612,6 +623,93 @@ static APPDEMO_SERDES_LANE_POLARITY_STC  falcon_DB_PolarityArray[] =
+     { 257,  GT_FALSE,   GT_TRUE  },
+     { 258,  GT_TRUE,    GT_TRUE  }
+ };
++
++/* PEGA Jenny */
++static APPDEMO_SERDES_LANE_POLARITY_STC  falcon_Pega_PolarityArray[] =
++{
++/* laneNum  invertTx    invertRx */
++    { 0,    GT_TRUE,    GT_TRUE },
++    { 1,    GT_TRUE,    GT_TRUE },
++    { 2,    GT_TRUE,    GT_FALSE },
++    { 3,    GT_FALSE,   GT_TRUE },
++    { 4,    GT_FALSE,   GT_FALSE },
++    { 5,    GT_FALSE,   GT_TRUE },
++    { 6,    GT_TRUE,    GT_FALSE },
++    { 7,    GT_TRUE,    GT_FALSE },
++    { 8,    GT_TRUE,    GT_FALSE },
++    { 9,    GT_TRUE,    GT_TRUE },
++    { 10,   GT_TRUE,    GT_TRUE },
++    { 11,   GT_TRUE,    GT_TRUE },
++    { 12,   GT_TRUE,    GT_TRUE },
++    { 13,   GT_TRUE,    GT_FALSE },
++    { 14,   GT_FALSE,   GT_TRUE },
++    { 15,   GT_TRUE,    GT_FALSE },
++    { 32,   GT_TRUE,    GT_FALSE },
++    { 33,   GT_TRUE,    GT_TRUE },
++    { 34,   GT_TRUE,    GT_FALSE },
++    { 35,   GT_TRUE,    GT_TRUE },
++    { 36,   GT_FALSE,   GT_FALSE },
++    { 37,   GT_TRUE,    GT_TRUE },
++    { 38,   GT_TRUE,    GT_TRUE },
++    { 39,   GT_TRUE,    GT_FALSE },
++    { 40,   GT_TRUE,    GT_FALSE },
++    { 41,   GT_TRUE,    GT_TRUE },
++    { 42,   GT_TRUE,    GT_TRUE },
++    { 43,   GT_TRUE,    GT_TRUE },
++    { 44,   GT_FALSE,   GT_FALSE },
++    { 45,   GT_FALSE,   GT_TRUE },
++    { 46,   GT_TRUE,    GT_TRUE },
++    { 47,   GT_FALSE,   GT_TRUE },
++    { 80,   GT_FALSE,   GT_FALSE },
++    { 81,   GT_TRUE,    GT_TRUE },
++    { 82,   GT_TRUE,    GT_FALSE },
++    { 83,   GT_TRUE,    GT_TRUE },
++    { 84,   GT_TRUE,    GT_TRUE },
++    { 85,   GT_FALSE,   GT_FALSE },
++    { 86,   GT_FALSE,   GT_FALSE },
++    { 87,   GT_FALSE,   GT_TRUE },
++    { 88,   GT_TRUE,    GT_TRUE },
++    { 89,   GT_FALSE,   GT_TRUE },
++    { 90,   GT_FALSE,   GT_TRUE },
++    { 91,   GT_TRUE,    GT_FALSE },
++    { 92,   GT_FALSE,   GT_FALSE },
++    { 93,   GT_TRUE,    GT_TRUE },
++    { 94,   GT_FALSE,   GT_FALSE },
++    { 95,   GT_TRUE,    GT_FALSE },
++    { 96,   GT_FALSE,   GT_FALSE },
++    { 97,   GT_TRUE,    GT_TRUE },
++    { 98,   GT_TRUE,    GT_TRUE },
++    { 99,   GT_TRUE,    GT_TRUE },
++    { 100,  GT_FALSE,   GT_FALSE },
++    { 101,  GT_FALSE,   GT_FALSE },
++    { 102,  GT_FALSE,   GT_FALSE },
++    { 103,  GT_FALSE,   GT_FALSE },
++    { 104,  GT_TRUE,    GT_FALSE },
++    { 105,  GT_FALSE,   GT_FALSE },
++    { 106,  GT_FALSE,   GT_FALSE },
++    { 107,  GT_FALSE,   GT_FALSE },
++    { 108,  GT_TRUE,    GT_FALSE },
++    { 109,  GT_FALSE,   GT_TRUE },
++    { 110,  GT_FALSE,   GT_TRUE },
++    { 111,  GT_TRUE,    GT_TRUE },
++    { 112,  GT_TRUE,    GT_TRUE },
++    { 113,  GT_TRUE,    GT_FALSE },
++    { 114,  GT_FALSE,   GT_TRUE },
++    { 115,  GT_TRUE,    GT_TRUE },
++    { 116,  GT_TRUE,    GT_FALSE },
++    { 117,  GT_FALSE,   GT_FALSE },
++    { 118,  GT_FALSE,   GT_TRUE },
++    { 119,  GT_TRUE,    GT_FALSE },
++    { 120,  GT_TRUE,    GT_FALSE },
++    { 121,  GT_TRUE,    GT_FALSE },
++    { 122,  GT_FALSE,   GT_FALSE },
++    { 123,  GT_FALSE,   GT_FALSE },
++    { 124,  GT_TRUE,    GT_TRUE },
++    { 125,  GT_FALSE,   GT_FALSE },
++    { 126,  GT_FALSE,   GT_FALSE },
++    { 127,  GT_FALSE,   GT_TRUE }
++    
++};
+ static APPDEMO_SERDES_LANE_POLARITY_STC  falcon_DB_interposers_PolarityArray[] =
+ {
+     { 0,    GT_TRUE,    GT_FALSE },
+@@ -1269,6 +1367,19 @@ static CPSS_FALCON_LED_STREAM_INDICATIONS_STC falcon_6_4_reduced_led_indications
+     { 0,  0, GT_FALSE},   /* Raven  6 - not used */
+     { 0,  0, GT_FALSE},   /* Raven  7 - not used */
+ };
++
++/* PEGA Jenny add */
++static CPSS_FALCON_LED_STREAM_INDICATIONS_STC falcon_6_4_Pega_led_indications[CPSS_CHIPLETS_MAX_NUM_CNS] =
++{
++    {32, 79, GT_FALSE},   /* Raven  0 - 16 LED ports , class 1 & 2 */
++    {32, 79, GT_FALSE},   /* Raven  1 - */
++    {32, 79, GT_FALSE},   /* Raven  2 - 16 LED ports , class 1 & 2 */
++    {32, 79, GT_FALSE},   /* Raven  3 - */
++    {32, 79, GT_FALSE},   /* Raven  4 - */
++    {32, 79, GT_FALSE},   /* Raven  5 - 16 LED ports , class 1 & 2 */
++    {32, 79, GT_FALSE},   /* Raven  6 - 16 LED ports , class 1 & 2 */
++    {32, 79, GT_FALSE},   /* Raven  7 - 16 LED ports , class 1 & 2 */
++};
+ #endif
+ 
+ /* offset used during HW device ID calculation formula */
+@@ -1632,6 +1743,115 @@ static FALCON_PORT_MAP_STC falcon_6_4_100G_defaultMap[] =
+ static GT_U32   actualNum_falcon_6_4_100G_defaultMap = sizeof(falcon_6_4_100G_defaultMap)/sizeof(falcon_6_4_100G_defaultMap[0]);
+ 
+ 
++/* PEGA Jenny */
++static FALCON_PORT_MAP_STC falcon_6_4_Pega_defaultMap[] =
++{
++     {1               , 1          ,    1       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {2               , 1          ,    0       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {3               , 1          ,    5       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {4               , 1          ,    4       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {5               , 1          ,   14       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {6               , 1          ,   15       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {7               , 1          ,   10       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {8               , 1          ,   11       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {9               , 1          ,   33       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {10              , 1          ,   32       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {11              , 1          ,   37       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {12              , 1          ,   36       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {13              , 1          ,   46       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {14              , 1          ,   47       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {15              , 1          ,   42       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {16              , 1          ,   43       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {17              , 1          ,    3       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {18              , 1          ,    2       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {19              , 1          ,    7       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {20              , 1          ,    6       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {21              , 1          ,   12       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {22              , 1          ,   13       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {23              , 1          ,    8       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {24              , 1          ,    9       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {25              , 1          ,   35       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {26              , 1          ,   34       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {27              , 1          ,   39       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {28              , 1          ,   38       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {29              , 1          ,   44       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {30              , 1          ,   45       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {31              , 1          ,   40       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {32              , 1          ,   41       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {33              , 1          ,   80       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {34              , 1          ,   81       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {35              , 1          ,   84       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {36              , 1          ,   85       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {37              , 1          ,   82       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {38              , 1          ,   83       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {39              , 1          ,   93       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {40              , 1          ,   95       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {41              , 1          ,   89       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {42              , 1          ,   91       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {43              , 1          ,   86       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {44              , 1          ,   87       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {45              , 1          ,   92       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {46              , 1          ,   94       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {47              , 1          ,   88       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++     {48              , 1          ,   90       , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E,IGNORE_DMA_STEP},
++ 
++     {64            ,  1         ,    96     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {65            ,  1         ,    97     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {66            ,  1         ,    98     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {67            ,  1         ,    99     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {68            ,  1         ,   100     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {69            ,  1         ,   101     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {70            ,  1         ,   102     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {71            ,  1         ,   103     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {72            ,  1         ,   104     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/* 20200609 Vivid ask to change from 108 to 104 */
++     {73            ,  1         ,   105     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 109 to 105 */
++     {74            ,  1         ,   106     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 110 to 106 */
++     {75            ,  1         ,   107     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 111 to 107 */
++     {76            ,  1         ,   108     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 104 to 108 */
++     {77            ,  1         ,   109     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 105 to 109 */
++     {78            ,  1         ,   110     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 106 to 110 */
++     {79            ,  1         ,   111     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 107 to 111 */
++     {80            ,  1         ,   112     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {81            ,  1         ,   113     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {82            ,  1         ,   114     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {83            ,  1         ,   115     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {84            ,  1         ,   116     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {85            ,  1         ,   117     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {86            ,  1         ,   118     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {87            ,  1         ,   119     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {88            ,  1         ,   120     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/* 20200609 Vivid ask to change from 124 to 120 */
++     {89            ,  1         ,   121     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 125 to 121 */
++     {90            ,  1         ,   122     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 126 to 122 */
++     {91            ,  1         ,   123     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 127 to 123 */
++     {92            ,  1         ,   124     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 120 to 124 */
++     {93            ,  1         ,   125     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 121 to 125 */
++     {94            ,  1         ,   126     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 122 to 126 */
++     {95            ,  1         ,   127     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 123 to 127 */
++
++
++    /* Marvell - vivid : check cpu DMA range in spec */ 
++#if 0 
++    /*
++    Using MAC[131] instead of SDMA[138] that is muxed with it
++    Using MAC[132] instead of SDMA[140] that is muxed with it
++    */
++    {CPU_PORT/*63*/  , 1           ,  136/*DMA*/, CPSS_DXCH_PORT_MAPPING_TYPE_CPU_SDMA_E    ,IGNORE_DMA_STEP},
++    /* map 'CPU SDMA ports' 100 - 106 to DMA 137 - 143 */
++    {100             ,  7          , 137/*DMA*/, CPSS_DXCH_PORT_MAPPING_TYPE_CPU_SDMA_E    ,IGNORE_DMA_STEP}
++#else    /* PEGA Jenny */
++     {98            ,  1         ,   128     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {99            ,  1         ,   135     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {100           ,  1         ,   137/*DMA*/, CPSS_DXCH_PORT_MAPPING_TYPE_CPU_SDMA_E    ,IGNORE_DMA_STEP},
++     {101           ,  1         ,   139/*DMA*/, CPSS_DXCH_PORT_MAPPING_TYPE_CPU_SDMA_E    ,IGNORE_DMA_STEP},
++     {102           ,  1         ,   141/*DMA*/, CPSS_DXCH_PORT_MAPPING_TYPE_CPU_SDMA_E    ,IGNORE_DMA_STEP},
++     {103           ,  1         ,   142/*DMA*/, CPSS_DXCH_PORT_MAPPING_TYPE_CPU_SDMA_E    ,IGNORE_DMA_STEP},
++     {104           ,  1         ,   143/*DMA*/, CPSS_DXCH_PORT_MAPPING_TYPE_CPU_SDMA_E    ,IGNORE_DMA_STEP}
++#endif 
++  
++  
++};
++static GT_U32   actualNum_falcon_6_4_Pega_defaultMap = sizeof(falcon_6_4_Pega_defaultMap)/sizeof(falcon_6_4_Pega_defaultMap[0]);    /* Marvell Vivid */
++
+ /***************************************************************/
+ /* flag to use the MAX number of macs that the device supports */
+ /* AND max SDMAs                                               */
+@@ -2574,7 +2794,18 @@ static GT_STATUS fillDbForCpssPortMappingInfo(IN GT_U32 devNum)
+     }
+ 
+     devType = PRV_CPSS_PP_MAC(devNum)->devType;
++
++    /* Marvell Vivid */
++    printf(" # Marvell Vivid - devType = %x \n", devType);
++    printf(" # Marvell Vivid - forced to be aldrin2 !!!\n");
++    PRV_CPSS_PP_MAC(devNum)->devType = CPSS_98EX5610_CNS;
++    devType = PRV_CPSS_PP_MAC(devNum)->devType;
++    /* add end */
++
+     maxPhyPorts = PRV_CPSS_DXCH_MAX_PHY_PORT_NUMBER_MAC(devNum);
++
++    printf(" # Marvell Vivid - maxPhyPorts =%d  \n", maxPhyPorts); /* Marvell Vivid */
++   
+     switch(PRV_CPSS_PP_MAC(devNum)->multiPipe.numOfTiles)
+     {
+         default:
+@@ -2695,11 +2926,23 @@ static GT_STATUS fillDbForCpssPortMappingInfo(IN GT_U32 devNum)
+                 else
+                 {
+                     /* armstrong2 80X25G */
++                    
++                    #if 0 /* Marvell Vivid mark and add else case for PEGA */
+                     currAppDemoInfoPtr = &armstrong2_80x25g_defaultMap[0];
+                     numEntries = actualNum_armstrong2_80x25g_defaultMap;
++                    #else
++                    currAppDemoInfoPtr = &falcon_6_4_Pega_defaultMap[0];
++                    numEntries = actualNum_falcon_6_4_Pega_defaultMap;
++                    #endif
++                    use_falcon_6_4_cpu_ports_group1 = 0;
++                    use_falcon_6_4_cpu_ports_group2 = 1;
++                    printf(" # Marvell Vivid - using PEGA map \n");
+                 }
++                
++                #if 0 /* Marvell Vivid mark off */
+                 use_falcon_6_4_cpu_ports_group1 = 1;
+                 use_falcon_6_4_cpu_ports_group2 = 1;
++                #endif 
+                 break;
+             }
+             else
+@@ -2900,7 +3143,11 @@ static GT_STATUS fillDbForCpssPortMappingInfo(IN GT_U32 devNum)
+         FALCON_PORT_MAP_STC *temp_currAppDemoInfoPtr;
+         GT_U32              temp_startGlobalDmaNumber;
+ 
++        #if 0    /* PEGA Jenny change 1 to 0 */
+         use_falcon_6_4_cpu_ports_group1 = 1;/* default : use CPU ports MACs 130,131 */
++        #else
++        use_falcon_6_4_cpu_ports_group1 = 0;
++        #endif
+         if(modeMaxMac)
+         {
+             use_falcon_6_4_cpu_ports_group2 = 1;/* default : use also CPU ports MACs 128,135 */
+@@ -2909,6 +3156,10 @@ static GT_STATUS fillDbForCpssPortMappingInfo(IN GT_U32 devNum)
+         appDemoDbEntryGet("use_falcon_6_4_cpu_ports_group1", &use_falcon_6_4_cpu_ports_group1);
+         appDemoDbEntryGet("use_falcon_6_4_cpu_ports_group2", &use_falcon_6_4_cpu_ports_group2);
+ 
++        printf(" # Marvell Vivid - modeMaxMac = %d\n", modeMaxMac); 
++        printf(" # Marvell Vivid - use_falcon_6_4_cpu_ports_group1 = %d\n", use_falcon_6_4_cpu_ports_group1); 
++        printf(" # Marvell Vivid - use_falcon_6_4_cpu_ports_group2 = %d\n", use_falcon_6_4_cpu_ports_group2); 
++
+         temp_currAppDemoInfoPtr = currAppDemoInfoPtr;
+ 
+         /* remove from the mapping the CPU ports that are not part of it */
+@@ -3248,6 +3499,21 @@ static PortInitList_STC falcon_6_4_portInitlist[] =
+     ,{ PORT_LIST_TYPE_EMPTY,     {APP_INV_PORT_CNS }, CPSS_PORT_SPEED_NA_E,   CPSS_PORT_INTERFACE_MODE_QSGMII_E    }
+ };
+ 
++
++/* Falcon ports in 50G mode */
++/* Marvell Vivid add */
++static PortInitList_STC falcon_6_4_Pega_portInitlist[] =
++{
++     { PORT_LIST_TYPE_INTERVAL,  {1,48,1, APP_INV_PORT_CNS }, CPSS_PORT_SPEED_25000_E,  CPSS_PORT_INTERFACE_MODE_KR_E      }
++
++      /* ports 64..127*/
++    ,{ PORT_LIST_TYPE_INTERVAL,  {64,95,1, APP_INV_PORT_CNS }, CPSS_PORT_SPEED_25000_E,  CPSS_PORT_INTERFACE_MODE_KR_E      }
++    ,{ PORT_LIST_TYPE_INTERVAL,  {98,99,1, APP_INV_PORT_CNS }, CPSS_PORT_SPEED_10000_E,  CPSS_PORT_INTERFACE_MODE_KR_E      }
++    
++    ,{ PORT_LIST_TYPE_EMPTY,     {APP_INV_PORT_CNS }, CPSS_PORT_SPEED_NA_E,   CPSS_PORT_INTERFACE_MODE_QSGMII_E    }
++
++};
++
+ /* Falcon ports in 100G mode */
+ static PortInitList_STC falcon_6_4_100G_portInitlist[] =
+ {
+@@ -3424,7 +3690,12 @@ static PortInitList_STC falcon_64x50g_portInitlist[] =
+     ,{ PORT_LIST_TYPE_EMPTY,     {APP_INV_PORT_CNS }, CPSS_PORT_SPEED_NA_E,   CPSS_PORT_INTERFACE_MODE_QSGMII_E    }
+ };
+ 
++/* Marvell Vivid */
++#if 0
+ static PortInitList_STC *falcon_force_PortsInitListPtr = NULL;
++#else
++static PortInitList_STC *falcon_force_PortsInitListPtr = falcon_6_4_Pega_portInitlist;
++#endif
+ 
+ /**
+ * @internal falcon_getBoardInfo function
+@@ -3677,6 +3948,15 @@ static GT_STATUS falcon_boardTypeInitDatabases
+             ARR_PTR_AND_SIZE_MAC(falcon_2T4T_PolarityArray, falcon_PolarityArray, falcon_PolarityArray_arrSize);
+             break;
+ 
++        /* Marvell Vivid */
++        case APP_DEMO_FALCON_BOARD_PEGA_6_4_ID_CNS :
++            ARR_PTR_AND_SIZE_MAC(falcon_6_4_Pega_defaultMap, falcon_MacToSerdesMap, falcon_MacToSerdesMap_arrSize);
++            /* Polarity Swap DB's */
++            ARR_PTR_AND_SIZE_MAC(falcon_Pega_PolarityArray, falcon_PolarityArray, falcon_PolarityArray_arrSize);
++ 
++            printf(" # Marvell Vivid - use the falcon_6_4_Pega_defaultMap \n");
++            break ; 
++
+         default:
+             return GT_NOT_SUPPORTED;
+             break;
+@@ -3779,6 +4059,13 @@ static GT_STATUS getPpPhase1ConfigSimple
+         phase1Params->mngInterfaceType      = CPSS_CHANNEL_PEX_EAGLE_E;
+     }
+ 
++    /* Marvell Vivid */
++    if(boardRevId == 8) 
++    {
++        numOfTiles = 2;
++        maxNumOfPhyPortsToUse = 128;
++    }
++   
+     cpssOsPrintf("The device considered with [%d] tiles to select [%d] 'ports mode' \n",
+         numOfTiles,
+         maxNumOfPhyPortsToUse);
+@@ -4658,7 +4945,15 @@ static GT_STATUS falcon_PortModeConfiguration
+                             PRV_CPSS_PP_MAC(devNum)->devType == CPSS_98CX8512_CNS ||
+                             PRV_CPSS_PP_MAC(devNum)->devType == CPSS_98CX8514_CNS)
+                         {
++                            /* Marvell Vivid */
++                            #if  0 
+                             portInitListPtr = armstrong2_80x25g_portInitlist;
++                            #else
++                            portInitListPtr = falcon_6_4_Pega_portInitlist ; 
++                              
++                            printf(" # Marvell Vivid - CPSS_98EX5610_CNS port list \n"); 
++                            break ; 
++                            #endif 
+                         }
+                         else if (PRV_CPSS_PP_MAC(devNum)->devType == CPSS_98CX8520_CNS ||
+                                  PRV_CPSS_PP_MAC(devNum)->devType == CPSS_98CX8525_CNS)
+@@ -4779,6 +5074,8 @@ static GT_STATUS falcon_PortModeConfiguration
+             break;
+     }
+ 
++    
++    #if 0    /* Marvell Vivid mark off */
+     if ((PRV_CPSS_PP_MAC(devNum)->devType == CPSS_98CX8522_CNS)
+         || (PRV_CPSS_PP_MAC(devNum)->devType == CPSS_98CX8542_CNS))
+     {
+@@ -4802,6 +5099,8 @@ static GT_STATUS falcon_PortModeConfiguration
+         falcon_force_PortsInitListPtr = falcon_12_8_rd_slot_portInitlist_256_port_mode;
+     }
+ 
++    #endif 
++
+     if(falcon_force_PortsInitListPtr)
+     {
+         /* allow to 'FORCE' specific array by other logic */
+@@ -5721,6 +6020,7 @@ GT_STATUS falcon_initStaticSerdesMuxing
+         return rc;
+     }
+ 
++    #if 0    /* Jenny try mark off (alight with cpss2019.07) */
+     if ((currBoardType == APP_DEMO_FALCON_BOARD_12_8_TH_CNS) && (PRV_CPSS_PP_MAC(devNum)->multiPipe.numOfTiles != 4))
+     {
+         return GT_OK;
+@@ -5779,6 +6079,7 @@ GT_STATUS falcon_initStaticSerdesMuxing
+ #endif
+         CHECK_STATUS(cpssDxChPortLaneMacToSerdesMuxSet(devNum,portNum,&falcon_MacToSerdesMap[portMacNum/8]));
+     }
++    #endif    /* Jenny add */
+ 
+     return GT_OK;
+ }
+@@ -6301,6 +6602,7 @@ static GT_BOOL first_port_in_raven(GT_U32 portMacNum)
+ */
+ static GT_U32 led_port_position_get_mac(GT_U8 devNum, GT_U32 portMacNum, GT_U32 *cpuPortsArray)
+ {
++#if 0    /* PEGA Jenny try mark off then use else case. */
+     GT_U32 firstLedPosition, secondLedPosition;
+ 
+ 
+@@ -6339,6 +6641,9 @@ static GT_U32 led_port_position_get_mac(GT_U8 devNum, GT_U32 portMacNum, GT_U32
+     {
+         return APPDEMO_BAD_VALUE;
+     }
++#else
++    return (portMacNum % 16);
++#endif
+ }
+ 
+ /**
+@@ -6424,7 +6729,7 @@ static GT_STATUS falcon_LedInit
+     ledConfig.sip6LedConfig.ledClockFrequency   = 1627;                                                 /* LedChainClockControl.ledClkOutDiv  [11: 22] = 512 (app_clock - 833333/led_clock_out - 1627)  */
+     ledConfig.pulseStretch                      = CPSS_LED_PULSE_STRETCH_1_E;                           /* LedControl.Pulse-stretch-div[ 0: 29] =  100000 (ledClockFrequencyDivider - 10 * 10000  */
+ 
+-    ledConfig.blink0Duration          = CPSS_LED_BLINK_DURATION_1_E;    /* 64 ms */                     /* BlinkDivision0.blink0Duration  [ 0: 29]  = 0x32DCD40 (64/app_clock in mSec)*/
++    ledConfig.blink0Duration          = CPSS_LED_BLINK_DURATION_0_E;    /* Jenny set 32 ms. Orig is _1 (64ms) *//* BlinkDivision0.blink0Duration  [ 0: 29]  = 0x32DCD40 (64/app_clock in mSec)*/
+     ledConfig.blink0DutyCycle         = CPSS_LED_BLINK_DUTY_CYCLE_1_E;  /* 50%   */                     /* blinkGlobalControl.Blink0-Duty [ 3: 4]  = 1 25%  */
+     ledConfig.blink1Duration          = CPSS_LED_BLINK_DURATION_1_E;    /* 64 ms */                     /* BlinkDivision1.blink0Duration  [ 0: 29]  = 0x32DCD40 (64/app_clock in mSec)*/
+     ledConfig.blink1DutyCycle         = CPSS_LED_BLINK_DUTY_CYCLE_1_E;  /* 50%   */                     /* blinkGlobalControl.Blink1-Duty [ 8: 9]  = 1 25%  */
+@@ -6448,7 +6753,11 @@ static GT_STATUS falcon_LedInit
+             cpuPortMacFirst     = 128;
+             break;
+         case CPSS_98EX5610_CNS:
++            #if 0 /* PEGA Jenny mark off to use else case */
+             ledStreamIndication = falcon_6_4_reduced_led_indications;
++            #else
++            ledStreamIndication = falcon_6_4_Pega_led_indications;
++            #endif
+             cpuPortMacFirst     = 128;
+             break;
+         default:
+@@ -6494,6 +6803,11 @@ static GT_STATUS falcon_LedInit
+             ledClassManip.disableOnLinkDown       = GT_TRUE;                                  /* classGlobalControl.disable on link down [ 0- 5] = pos = classNum = 0*/
+             ledClassManip.blinkEnable             = GT_TRUE;                                  /* blinkGlobalControl.blinkEn     [18-25] = pos = classNum val = 1 */
+         }                                                                                     /* blinkGlobalControl.Blink Select[10-17] = pos = classNum val = 0 */
++        else if(classNum == 0 || classNum == 3 || classNum == 4 || classNum == 5)    /* Jenny try add 0,3,4,5 */
++        {
++            ledClassManip.disableOnLinkDown       = GT_TRUE;                                  /* classGlobalControl.disable on link down [ 0- 5] = pos = classNum = 0*/
++            ledClassManip.blinkEnable             = GT_TRUE;                                  /* blinkGlobalControl.blinkEn     [18-25] = pos = classNum val = 1 */
++        }
+         else
+         {
+             ledClassManip.disableOnLinkDown       = GT_FALSE;
+@@ -6775,6 +7089,15 @@ static GT_STATUS gtDbFalconBoardReg_SimpleInit
+             boardType = APP_DEMO_FALCON_BOARD_2T_4T_CNS;
+             falcon_boardTypePrint("2T/4T TH" /*boardName*/, "Falcon" /*devName*/);
+             break;
++        case 8 :    /* Marvell Vivid add for PEGA */
++            boardType = APP_DEMO_FALCON_BOARD_PEGA_6_4_ID_CNS;
++            falcon_boardTypePrint("6.4T Pega" /*boardName*/, "Falcon" /*devName*/);
++            /*vivivd need to check */
++            #if 0 
++            APP_DEMO_DB_ENTRY_ADD_PREVENT_OVERRIDE_MAC("modeMaxMac", 1);
++            #endif 
++            break ; 
++
+         default:
+             break;
+     }
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile
+index b407e3fc..54229373 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile
+@@ -10,7 +10,7 @@ MODULES :=
+ 
+ #List of files to include in list
+ FILES := \
+- main.c 
++ main.c mfg_gemini.c
+ 
+ 
+ CWD := $(dir $(lastword $(MAKEFILE_LIST)))
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/main.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/main.c
+index 2e9db5e8..5cda0392 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/main.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/main.c
+@@ -64,6 +64,11 @@ extern const char *VERSION_DATE;
+ extern const char *VERSION_FLAGS;
+ extern int userAppInit(void);
+ 
++/* PEGA Jenny Add */
++extern int MFG_Init(void);
++extern void MFG_Futher_Action(void);
++/* Add End */
++
+ void preUserAppInit(void)
+ {
+     /* here we will map the pss memory */
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+new file mode 100644
+index 00000000..12fd176e
+--- /dev/null
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+@@ -0,0 +1,2648 @@
++#define _BSD_SOURCE
++#include <gtOs/gtOsSharedMemory.h>
++#include <gtOs/gtOsInit.h>
++#define CMDOS_NO_CMDCOMMON
++#include <cmdShell/os/cmdOs.h>
++#ifdef CMD_LUA_CLI
++#include <termios.h>
++#include <unistd.h>
++#endif
++
++#include<sys/socket.h>
++#include<arpa/inet.h>
++#include <sys/ioctl.h>
++#include <linux/sockios.h>
++
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/ioctl.h>
++#include <fcntl.h>
++#include <linux/i2c.h>
++#include <linux/i2c-dev.h>
++#include <pthread.h>
++#include <math.h>
++#include <cpss/generic/cpssTypes.h>
++#include <cpss/generic/bridge/cpssGenBrgVlanTypes.h>
++#include <cpss/generic/bridge/private/prvCpssBrgVlanTypes.h>
++#include <cpss/generic/bridge/cpssGenBrgFdb.h>
++#include <cpss/generic/private/prvCpssCommonDefs.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortBufMg.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortTx.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortEee.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortCtrl.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortBufMg.h>
++#include <cpss/dxCh/dxChxGen/port/private/prvCpssDxChPortCtrl.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgGen.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgVlan.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgSrcId.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgPrvEdgeVlan.h>
++#include <cpss/dxCh/dxChxGen/bridge/private/prvCpssDxChBrg.h>
++#include <cpss/dxCh/dxChxGen/config/private/prvCpssDxChInfo.h>
++#include <cpss/dxCh/dxChxGen/ip/cpssDxChIpCtrl.h>
++#include <cpss/dxCh/dxChxGen/cos/private/prvCpssDxChCoS.h>
++#include <cpss/dxCh/dxChxGen/diag/cpssDxChDiag.h>
++#include <cpss/dxCh/dxChxGen/diag/cpssDxChDiagDataIntegrity.h>
++#include <cpss/dxCh/dxChxGen/diag/cpssDxChDiagPacketGenerator.h>
++#include <cpss/dxCh/dxChxGen/trunk/cpssDxChTrunk.h>
++#include <cpss/dxCh/dxChxGen/cscd/cpssDxChCscd.h>
++#include <cpss/dxCh/dxChxGen/cutThrough/cpssDxChCutThrough.h>
++#include <cpss/dxCh/dxChxGen/phy/cpssDxChPhySmi.h>
++#include <appDemo/boardConfig/gtBoardsConfigFuncs.h>
++#include <appDemo/boardConfig/appDemoBoardConfig.h>
++#include <appDemo/boardConfig/appDemoCfgMisc.h>
++#include <appDemo/boardConfig/appDemoLion2TrunkWa.h>
++#include <appDemo/sysHwConfig/appDemoDb.h>
++#include <appDemo/sysHwConfig/gtAppDemoSysConfig.h>
++#include <appDemo/sysHwConfig/gtAppDemoSysConfigDefaults.h>
++#include <extUtils/osNetworkStack/osNetworkStack.h>
++
++#define DEVNUM 0
++#define MAX_DEVICE_NUM 1
++#define PORT_AMOUNT 96
++#define QSFP_TOTAL_LANE 32
++#define SFP_VLAN_PAIR 24        /* 48/2 */
++#define PORT_ACTION_DELAY 30000 /* ms */
++#define ACTION_DELAY 150000     /* ms */
++#define COUNTER_PKT_LENGTH_FOR_PER_PORT 64  /* Mercedes3 set 256 */
++
++#define FILE_NORMAL_PARAM   "/home/root/mfg/sdk_configuration"
++#define FILE_BURNIN_PARAM   "/home/root/mfg/burnin_configuration"
++#define FILE_BURNIN_TEMP    "/home/root/testLog/MAC/burnin_temp_log.log"    /* Parsed by diag_traffic_test.sh */
++#define FILE_PRETEST_PARAM  "/home/root/mfg/pretest_configuration"
++#define FILE_PRETEST_TEMP   "/home/root/testLog/MAC/pretest_log.log"
++#define FILE_SPEED_NOTE     "/home/root/testLog/MAC/led_speed_note.txt"
++#define NOTE_QSFP_SPEED     "/tmp/sdk_qsfp_speed"
++#define NOTE_SFP_SPEED      "/tmp/sdk_sfp_speed"
++#define NOTE_SFP_INTERFACE  "/tmp/sdk_sfp_interface"
++#define NOTE_QSFP_INTERFACE "/tmp/sdk_qsfp_interface"
++
++FILE * fd;
++char buf[32];
++char cmd_buf[20480] = {0};    /* for execution Linux commands */
++
++int SFP_MAC_PORT_START = 1, SFP_MAC_PORT_END = 48;
++int QSFP_MAC_PORT_START = 64, QSFP_MAC_PORT_END = 95;
++#if 0
++int QSFP_MAC_PORT_4_LANE_PER_PORT[(QSFP_TOTAL_LANE / 4) + 1] = {-1, 67, 70, 72, 76, 83, 86, 88, 92};
++int QSFP_MAC_PORT_2_LANE_PER_PORT[(QSFP_TOTAL_LANE / 2) + 1] = {-1, 64, 67, 69, 70, 72, 74, 76, 78, 80, 83, 85, 86, 88, 89, 92, 95};
++#else
++int QSFP_MAC_PORT_4_LANE_PER_PORT[(QSFP_TOTAL_LANE / 4) + 1] = {-1, 64, 68, 72, 76, 80, 84, 88, 92};
++int QSFP_MAC_PORT_2_LANE_PER_PORT[(QSFP_TOTAL_LANE / 2) + 1] = {-1, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94};
++#endif
++
++int QSFP_MAC_PORT_1_LANE_PER_PORT[QSFP_TOTAL_LANE + 1] = {-1, 64, 65, 66, 67,
++                                                              68, 69, 70, 71,
++                                                              72, 73, 74, 75,
++                                                              76, 77, 78, 79,
++                                                              80, 81, 82, 83,
++                                                              84, 85, 86, 87,
++                                                              88, 89, 90, 91,
++                                                              92, 93, 94, 95};
++int work_ports[ QSFP_TOTAL_LANE + 1 ];
++int array_index = 0;
++int current_sfp_speed = 25, current_qsfp_speed = 100;
++int lane_num_per_port = 1;
++
++int traffic_request_count = 0, burn_in_time = 0, flooding_sec = 0;
++int current_action_mode = 0;
++int rv_s = -1;
++
++enum{
++MODE_NORMAL = 1,
++MODE_PRETEST,
++MODE_BURNIN,
++MODE_AUTO_TRAFFIC_FLOODING,
++MODE_TEST,
++};
++
++enum{
++MFG_PORT_SPEED_N = 0,
++MFG_PORT_SPEED_10G,
++MFG_PORT_SPEED_25G,
++MFG_PORT_SPEED_40G,
++MFG_PORT_SPEED_50G,
++MFG_PORT_SPEED_100G,
++};
++
++enum{
++SFP = 1,
++QSFP,
++};
++
++struct default_vlan_info {
++    CPSS_PORTS_BMP_STC portMem;
++    CPSS_PORTS_BMP_STC portsTag;
++    CPSS_DXCH_BRG_VLAN_INFO_STC vlanInfo;
++    GT_BOOL isValid;
++    CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC portsTaggingCmd;
++};
++static struct default_vlan_info def_vlan_bak;
++static int isDefVlanBak = 0;
++
++static GT_U8 *buffList[1];
++static GT_U32 buffLenList[1]={64};  /* packet length = 64 . (1522) */
++
++struct mib_counter{
++    unsigned long long int per_port_send_packet[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int per_port_recv_packet[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int per_port_lose_packet[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int goodOctetsRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int badOctetsRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int macTransmitErr[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int goodPktsRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int badPktsRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int brdcPktsRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int mcPktsRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts64Octets[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts65to127Octets[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts128to255Octets[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts256to511Octets[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts512to1023Octets[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts1024tomaxOoctets[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int goodOctetsSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int goodPktsSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int excessiveCollisions[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int mcPktsSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int brdcPktsSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int unrecogMacCntrRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int fcSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int goodFcRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int dropEvents[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int undersizePkts[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int fragmentsPkts[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int oversizePkts[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int jabberPkts[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int macRcvError[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int badCrc[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int collisions[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int lateCollisions[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int badFcRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int ucPktsRcv[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int ucPktsSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int multiplePktsSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int deferredPktsSent[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts1024to1518Octets[MAX_DEVICE_NUM][PORT_AMOUNT];
++    unsigned long long int pkts1519toMaxOctets[MAX_DEVICE_NUM][PORT_AMOUNT];
++};
++
++int Write_MAC_Register(off_t target, GT_U32 writeval)
++{
++    prvCpssDrvHwPpPortGroupWriteRegister(0, 0, target, writeval);
++    printf(" # write value 0x%x to MAC register 0x%08x\n", writeval, target);
++
++    return 0;
++}
++
++int Read_MAC_Register(off_t target)
++{
++    unsigned long data = 0;
++
++    prvCpssDrvHwPpPortGroupReadRegister(0, 0, target, &data);
++    printf(" # read MAC register 0x%x value = 0x%08x\n", target, data);
++
++    return 0;
++}
++
++void Config_QSFP_array (void)
++{
++    memset(work_ports, 0x0, sizeof(work_ports));
++
++    if (current_qsfp_speed == 100 || current_qsfp_speed == 40)
++    {
++        memcpy(work_ports, QSFP_MAC_PORT_4_LANE_PER_PORT, sizeof(QSFP_MAC_PORT_4_LANE_PER_PORT));
++        array_index = QSFP_TOTAL_LANE / 4;
++        lane_num_per_port = 4;
++    }
++    else if (current_qsfp_speed == 50)
++    {
++        memcpy(work_ports, QSFP_MAC_PORT_2_LANE_PER_PORT, sizeof(QSFP_MAC_PORT_2_LANE_PER_PORT));
++        array_index = QSFP_TOTAL_LANE / 2;
++        lane_num_per_port = 2;
++    }
++    else /* 25,10 */
++    {
++        memcpy(work_ports, QSFP_MAC_PORT_1_LANE_PER_PORT, sizeof(QSFP_MAC_PORT_1_LANE_PER_PORT));
++        array_index = QSFP_TOTAL_LANE;
++        lane_num_per_port = 1;
++    }
++}
++
++int Read_SFP_Speed_Note ()
++{
++    int base = 10;
++    char *endptr;
++    int current_sfp_speed = 0;
++
++    memset(buf, 0x0, sizeof(buf));
++    if ( (fd = fopen(NOTE_SFP_SPEED, "r") ) == NULL)
++    {
++        /* perror("Cannot open file"); */
++        return 0;
++    }
++    else
++    {
++        while (fscanf(fd, "%s", buf) != EOF)
++        {
++            current_sfp_speed = strtol(buf, &endptr, base);
++            /* printf(" [MFG - Debug] SFP speed = %d\n", current_sfp_speed); */
++        }
++        fclose(fd);
++    }
++
++    return current_sfp_speed;
++}
++
++int Read_QSFP_Speed_Note ()
++{
++    int base = 10;
++    char *endptr;
++    int current_qsfp_speed = 0;
++
++    memset(buf, 0x0, sizeof(buf));
++    if ( (fd = fopen(NOTE_QSFP_SPEED, "r") ) == NULL)
++    {
++        /* perror("Cannot open file"); */
++        return 0;
++    }
++    else
++    {
++        while (fscanf(fd, "%s", buf) != EOF)
++        {
++            current_qsfp_speed = strtol(buf, &endptr, base);
++            /* printf(" [MFG - Debug] QSFP speed = %d\n", current_qsfp_speed); */
++        }
++        fclose(fd);
++    }
++
++    Config_QSFP_array();
++
++    return current_qsfp_speed;
++}
++
++int Read_QSFP_Interface_Note ()
++{
++    int base = 10;
++    char *endptr;
++    int current_if = 0;
++
++    memset(buf, 0x0, sizeof(buf));
++    if ( (fd = fopen(NOTE_QSFP_INTERFACE, "r") ) == NULL)
++    {
++        perror("Cannot open file");
++        return GT_FAIL;
++    }
++    else
++    {
++        while (fscanf(fd, "%s", buf) != EOF)
++        {
++            current_if = strtol(buf, &endptr, base);
++            /* printf(" [MFG - Debug] QSFP Interface = %d\n", current_if); */
++        }
++        fclose(fd);
++    }
++
++    return current_if;
++}
++
++int Read_SFP_Interface_Note ()
++{
++    int base = 10;
++    char *endptr;
++    int current_if = 0;
++
++    memset(buf, 0x0, sizeof(buf));
++    if ( (fd = fopen(NOTE_SFP_INTERFACE, "r") ) == NULL)
++    {
++        perror("Cannot open file");
++        return GT_FAIL;
++    }
++    else
++    {
++        while (fscanf(fd, "%s", buf) != EOF) /* fread(fd, buf, sizeof(buf)); */
++        {
++            current_if = strtol(buf, &endptr, base);
++            /* printf(" [MFG - Debug] SFP Interface = %d\n", current_if); */
++        }
++        fclose(fd);
++    }
++
++    return current_if;
++}
++
++void I2C_Bus_Mutex_Check_And_Create()
++{
++    char cmd[64], buffer[64];
++    FILE *fp;
++    int i = 0;
++
++    memset(cmd, 0x0, sizeof(cmd));
++    sprintf(cmd, "ls /tmp/ | grep 'i2c-bus-mutex'");
++    fp = popen(cmd, "r");
++
++    memset(buffer, 0x0, sizeof(buffer));
++    while(fgets(buffer, 64, fp) != NULL) {
++        i++;
++    }
++    if (i == 0)
++    {
++        pclose(fp);
++
++        memset(cmd, 0x0, sizeof(cmd));
++        sprintf(cmd, "touch /tmp/i2c-bus-mutex");
++        fp = popen(cmd, "w");
++        pclose(fp);
++
++        usleep(100000);
++
++        memset(cmd, 0x0, sizeof(cmd));
++        sprintf(cmd, "sync");
++        fp = popen(cmd, "w");
++        pclose(fp);
++
++        usleep(100000);
++    }
++    else
++    {
++        pclose(fp);
++        usleep(1000000);
++        I2C_Bus_Mutex_Check_And_Create();    /* recursive check i2c-mutex node exist or not */
++    }
++}
++
++void I2C_Bus_Mutex_Clean()
++{
++    char cmd[64];
++    FILE *fp;
++
++    memset(cmd, 0x0, sizeof(cmd));
++    sprintf(cmd, "rm /tmp/i2c-bus-mutex");
++    fp = popen(cmd, "w");
++    pclose(fp);
++
++    usleep(100000);
++
++    memset(cmd, 0x0, sizeof(cmd));
++    sprintf(cmd, "sync");
++    fp = popen(cmd, "w");
++    pclose(fp);
++
++    usleep(100000);
++}
++
++void I2C_Set (int bus, int addr, int reg, int value)
++{
++    char cmd[64];
++    FILE *fp;
++
++    memset(cmd, 0x0, sizeof(cmd));
++    sprintf(cmd, "i2cset -y %d 0x%x 0x%x 0x%x", bus, addr, reg, value);
++    fp = popen(cmd, "w");
++    pclose(fp);
++}
++
++void LED_Setting (IN GT_U8 module_type, IN GT_U8 speed_select)
++{
++    /* Base on Gemini with BDX-DE platform */
++    int I2C_BUS = 0;
++    int I2C_MUX_B = 0x73, I2C_MUX_REG = 0x0;
++    int I2C_MUX_B_CHANNEL_0 = 0x1, I2C_MUX_B_CHANNEL_1 = 0x2, I2C_MUX_B_CHANNEL_2 = 0x4;
++    int CPLD_A_ADDR = 0x74, CPLD_B_ADDR = 0x75, CPLD_C_ADDR = 0x76;
++    int CPLD_A_ZLSR1_REG = 0x17 ; /* SFP-13~20 */
++    /*int CPLD_A_ZLSR2_REG = 0x18 ;*/ /* SFP-21~28 */
++    /*int CPLD_A_ZLSR3_REG = 0x19 ;*/ /* SFP-29~36 */
++    int CPLD_A_ZLSR4_REG = 0x1A ; /* SFP-37~40 */
++    int CPLD_B_ZLSR1_REG = 0x22 ; /* SFP- 1~ 8 */
++    int CPLD_B_ZLSR2_REG = 0x23 ; /* SFP- 9~12 */
++    int CPLD_C_ZLSR1_REG = 0x12 ; /* SFP-41~48 */
++    int CPLD_C_ZQLSR_REG = 0x14 ; /* QSFP-49~54 */
++
++    int I2C_ACTION_DELAY = 100000;
++    int index = 0;
++    int color = 0;
++
++    I2C_Bus_Mutex_Check_And_Create();
++
++    if (module_type == SFP )
++    {
++        if ( speed_select == 10 )
++            color = 0xff;    /* amber */
++        else
++            color = 0x00;    /* green */
++
++        /* SFP 1 ~ 12 */
++        I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_1);
++        usleep(I2C_ACTION_DELAY);
++        for ( index = CPLD_B_ZLSR1_REG ; index <= CPLD_B_ZLSR2_REG ; index++ )
++        {
++            I2C_Set(I2C_BUS, CPLD_B_ADDR, index, color);
++            usleep(I2C_ACTION_DELAY);
++        }
++
++        /* SFP 13 ~ 40 */
++        I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_0);
++        usleep(I2C_ACTION_DELAY);
++        for ( index = CPLD_A_ZLSR1_REG ; index <= CPLD_A_ZLSR4_REG ; index++ )
++        {
++            I2C_Set(I2C_BUS, CPLD_A_ADDR, index, color);
++            usleep(I2C_ACTION_DELAY);
++        }
++
++        /* SFP 41 ~ 48 */
++        I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_2);
++        usleep(I2C_ACTION_DELAY);
++        I2C_Set(I2C_BUS, CPLD_C_ADDR, CPLD_C_ZLSR1_REG, color);
++        usleep(I2C_ACTION_DELAY);
++    }
++    else if ( module_type == QSFP )
++    {
++        if ( speed_select == 10 || speed_select == 40 )
++            color = 0xff;    /* amber */
++        else
++            color = 0x00;    /* green */
++
++        /* QSFP 49 ~ 56 */
++        I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_2);
++        usleep(I2C_ACTION_DELAY);
++        I2C_Set(I2C_BUS, CPLD_C_ADDR, CPLD_C_ZQLSR_REG, color);
++        usleep(I2C_ACTION_DELAY);
++    }
++
++    I2C_Bus_Mutex_Clean();
++}
++
++GT_STATUS Tx_Preemphasis_Set (IN GT_U8 module_type, IN GT_U8 interface_select)
++{
++    CPSS_PORT_SERDES_TX_CONFIG_STC serdesTxCfg;
++    int port, lane = 0;
++    int i, rv_qsfp_speed;
++    char config_type[16]={0};
++
++    memset(config_type, 0x0, sizeof(config_type));
++
++    if (module_type == 0 || interface_select == 0)
++    {
++        printf(" [MFG] 1st parameter :: (1)-'SFP' ; (2)-'QSFP' \n");
++        printf(" [MFG] 2nd parameter :: (1)-'25G/100G CR4' ; (2)-'25G/100G CAUI4/SR ; (3)-10G/40G' ; (4)-Loopback Module\n");
++    }
++    else
++    {
++        serdesTxCfg.type = CPSS_PORT_SERDES_AVAGO_E;
++
++        /* request type check and decide values */
++        if (interface_select == 1)         /* 25G/100G CR4 */
++        {
++            serdesTxCfg.txTune.avago.atten = 0;
++            serdesTxCfg.txTune.avago.post = 2;
++            serdesTxCfg.txTune.avago.pre = 0;
++            serdesTxCfg.txTune.avago.pre2 = 0;
++            serdesTxCfg.txTune.avago.pre3 = 0;
++            snprintf(config_type, sizeof(config_type), "CR4");
++        }
++        else if (interface_select == 2)    /* 25G/100G CAUI-4 (SR4) */
++        {
++            serdesTxCfg.txTune.avago.atten = 0;
++            serdesTxCfg.txTune.avago.post = 8;
++            serdesTxCfg.txTune.avago.pre = -2;
++            serdesTxCfg.txTune.avago.pre2 = 0;
++            serdesTxCfg.txTune.avago.pre3 = 0;
++            snprintf(config_type, sizeof(config_type), "CAUI4");
++        }
++        else if (interface_select == 3)    /* 10G/40G */
++        {
++            serdesTxCfg.txTune.avago.atten = 11;
++            serdesTxCfg.txTune.avago.post = 6;
++            serdesTxCfg.txTune.avago.pre = 0;
++            serdesTxCfg.txTune.avago.pre2 = 0;
++            serdesTxCfg.txTune.avago.pre3 = 0;
++            snprintf(config_type, sizeof(config_type), "10G/40G");
++        }
++        else if (interface_select == 4)    /* Loopback module */
++        {
++            printf(" [MFG] Current temporary not support lbm ... use fiber parameters instead. \n");
++            Tx_Preemphasis_Set (module_type, 2);
++            return GT_OK;
++        }
++        else
++        {
++            printf(" [MFG] Invalid type choose ! exit ... \n");
++            return GT_FAIL;
++        }
++
++        /* port's lane check then set */
++        if (module_type == 1)          /* SFP */
++        {
++            for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port ++)
++            {
++                cpssDxChPortSerdesManualTxConfigSet(DEVNUM, port, lane, &serdesTxCfg);
++            }
++
++            printf(" [MFG] SFP Tx-parameters setting : %s Done\n", config_type);
++
++            /* write interface to note, for others function used */
++            fd = fopen(NOTE_SFP_INTERFACE, "w+");
++            memset(buf, 0x0, sizeof(buf));
++            snprintf(buf, sizeof(buf), "%d\n", interface_select);
++            fprintf(fd, buf);     /* fwrite(buf, 1, strlen(buf), fd); */
++            fclose(fd);
++        }
++        else if (module_type == 2)    /* QSFP */
++        {
++            rv_qsfp_speed = Read_QSFP_Speed_Note();
++            if ( rv_qsfp_speed <= 0)
++            {
++                printf(" [MFG] Get QSFP speed fail ... Tx-parameters setting : FAIL\n");
++                return GT_FAIL;
++            }
++
++            /* start setting tx-parameters for each lane port. */
++            for (i = 1 ; i <= array_index ; i++)
++            {
++                for (lane = 0 ; lane < lane_num_per_port ; lane ++)
++                {
++                    cpssDxChPortSerdesManualTxConfigSet(DEVNUM, work_ports[i], lane, &serdesTxCfg);
++                }
++            }
++
++            printf(" [MFG] QSFP Tx-parameters setting : %s Done\n", config_type);
++
++            /* write if to note for others function used */
++            fd = fopen(NOTE_QSFP_INTERFACE, "w+");
++            memset(buf, 0x0, sizeof(buf));
++            snprintf(buf, sizeof(buf), "%d\n", interface_select);
++            fprintf(fd, buf);     /* fwrite(buf, 1, strlen(buf), fd); */
++            fclose(fd);
++        }
++        else
++        {
++            printf(" [MFG] Invalid module choose ! exit ... \n");
++            return GT_FAIL;
++        }
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS QSFP_Speed_Set (IN GT_U8 speed_select, IN GT_U8 interface_type)
++{
++    CPSS_PORTS_BMP_STC portsBmp;
++    int i;
++    int rv = 0;
++    int speed = CPSS_PORT_SPEED_100G_E;        /*CPSS_PORT_SPEED_NA_E;*/
++    int mode = CPSS_PORT_INTERFACE_MODE_KR4_E; /*CPSS_PORT_INTERFACE_MODE_NA_E;*/
++    int last_qsfp_speed = 0;
++
++    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsBmp);
++
++    if (speed_select == MFG_PORT_SPEED_N)
++    {
++        for (i = QSFP_MAC_PORT_START; i <= QSFP_MAC_PORT_END; i++)
++            CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, i);
++
++        cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_FALSE, mode, speed);
++    }
++    else
++    {
++        /* Speed and Type */
++        if (speed_select == MFG_PORT_SPEED_10G)
++        {
++            speed = CPSS_PORT_SPEED_10000_E;
++            mode = CPSS_PORT_INTERFACE_MODE_KR_E;
++            current_qsfp_speed = 10;
++        }
++        else if (speed_select == MFG_PORT_SPEED_25G)
++        {
++            speed = CPSS_PORT_SPEED_25000_E;
++            mode = CPSS_PORT_INTERFACE_MODE_KR_E;
++            current_qsfp_speed = 25;
++        }
++        else if (speed_select == MFG_PORT_SPEED_40G)
++        {
++            speed = CPSS_PORT_SPEED_40000_E;
++            mode = CPSS_PORT_INTERFACE_MODE_KR4_E;
++            current_qsfp_speed = 40;
++        }
++        else if (speed_select == MFG_PORT_SPEED_50G)
++        {
++            speed = CPSS_PORT_SPEED_50000_E;
++            mode = CPSS_PORT_INTERFACE_MODE_KR2_E;
++            current_qsfp_speed = 50;
++        }
++        else if (speed_select == MFG_PORT_SPEED_100G)
++        {
++            speed = CPSS_PORT_SPEED_100G_E;
++            mode = CPSS_PORT_INTERFACE_MODE_KR4_E;
++            current_qsfp_speed = 100;
++        }
++
++        /* Open last config to be compared */
++        last_qsfp_speed = Read_QSFP_Speed_Note();
++        if ( last_qsfp_speed == 0 )
++        {
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "echo \"[SDK] Get QSFP speed fail ... File not exist !\" >> %s", FILE_SPEED_NOTE);
++            rv_s = system(cmd_buf);
++        }
++        else if ( last_qsfp_speed < 0 )
++        {
++            printf(" [MFG] Get QSFP speed fail ... \n");
++        }
++        /* printf(" [MFG - DEBUG ] cmp speed : last_qsfp_speed = %d , current_qsfp_speed = %d \n", last_qsfp_speed, current_qsfp_speed); */
++
++        /* Actual has speed change */
++        if (current_qsfp_speed != last_qsfp_speed)
++        {
++            QSFP_Speed_Set(MFG_PORT_SPEED_N, 0);    /* resume to no speed mode first. */
++
++            /* write speed to note for others function used */
++            fd = fopen(NOTE_QSFP_SPEED, "w+");
++            memset(buf, 0x0, sizeof(buf));
++            snprintf(buf, sizeof(buf), "%d\n", current_qsfp_speed);
++            fprintf(fd, buf);
++            fclose(fd);
++
++            /* PortBitMap assign */
++            memset(work_ports, 0x0, sizeof(work_ports));
++            if ( (speed_select == MFG_PORT_SPEED_100G) || (speed_select == MFG_PORT_SPEED_40G) )
++            {
++                memcpy(work_ports, QSFP_MAC_PORT_4_LANE_PER_PORT, sizeof(QSFP_MAC_PORT_4_LANE_PER_PORT));
++                array_index = QSFP_TOTAL_LANE / 4;
++            }
++            else if ( speed_select == MFG_PORT_SPEED_50G )
++            {
++                memcpy(work_ports, QSFP_MAC_PORT_2_LANE_PER_PORT, sizeof(QSFP_MAC_PORT_2_LANE_PER_PORT));
++                array_index = QSFP_TOTAL_LANE / 2;
++            }
++            else  /* 25G/10G */
++            {
++                memcpy(work_ports, QSFP_MAC_PORT_1_LANE_PER_PORT, sizeof(QSFP_MAC_PORT_1_LANE_PER_PORT));
++                array_index = QSFP_TOTAL_LANE;
++            }
++
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsBmp);
++            for (i = 1 ; i <= array_index ; i++)
++            {
++                CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, work_ports[i]);
++            }
++
++            /* Set port configuration */
++            cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_TRUE, mode, speed);
++            usleep(ACTION_DELAY);
++
++            /* Set LED by Linux I2C command */
++            #if 0
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "sh /home/root/mfg/mfg_sources/gemini_speed_led_control.sh QSFP %d", current_qsfp_speed);
++            rv_s = system(cmd_buf);
++            #else
++            LED_Setting(QSFP, current_qsfp_speed);
++            #endif
++
++            /* implement Tx-parametes. */
++            if (current_qsfp_speed == 100 || current_qsfp_speed == 50 || current_qsfp_speed == 25)
++            {
++                if (interface_type == 1)
++                    Tx_Preemphasis_Set(2, 1);    /* CR4 , if requested */
++                else if (interface_type == 4)
++                    Tx_Preemphasis_Set(2, 4);    /* LBM , if requested */
++                else
++                    Tx_Preemphasis_Set(2, 2);    /* default set CAUI-4 */
++            }
++            else if (current_qsfp_speed == 40 || current_qsfp_speed == 10)
++            {
++                if (interface_type == 4)
++                    Tx_Preemphasis_Set(2, 4);    /* LBM , if requested */
++                else
++                    Tx_Preemphasis_Set(2, 3);
++            }
++            usleep(ACTION_DELAY);
++
++            /* Do RX-Auto tune */
++            for (i = 1 ; i <= array_index ; i++)
++            {
++#if 1
++                rv = cpssDxChPortSerdesAutoTune(DEVNUM, work_ports[i], CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
++                if (rv != GT_OK)
++                    printf(" [MFG] Error occure during Port %d RX Training\n", work_ports[i]);
++#else
++                if ((current_qsfp_speed != 100) && (current_qsfp_speed != 40))
++                {
++                    rv = cpssDxChPortSerdesAutoTune(DEVNUM, work_ports[i], CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
++                    if (rv)
++                        printf(" [MFG] MAC Port %d Rx auto tune - fail.\n", work_ports[i]);
++                }
++                else
++                {
++                    rv = cpssDxChPortSerdesEnhancedAutoTune(DEVNUM, work_ports[i], 0, 15);
++                    if (ret != GT_OK) {
++                        printf("[MFG] Error occure during Port %d Enhanced Auto Tune\n", work_ports[i]);
++                    } else {
++                        ret = cpssDxChPortSerdesAutoTune(DEVNUM, work_ports[i], CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_ADAPTIVE_RX_TRAINING_START_E);
++                        if (ret != GT_OK)
++                            printf("[MFG] Error occure during Port %d ADAPTIVE RX Training\n", work_ports[i]);
++                    }
++                }
++#endif
++            }
++            printf(" [MFG] QSFP speed setting : %dG Done\n", current_qsfp_speed);
++        }
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS SFP_Speed_Set (IN GT_U8 speed_select, IN GT_U8 interface_type)
++{
++    CPSS_PORTS_BMP_STC portsBmp;
++    int port;
++    int rv = 0;
++    int speed = CPSS_PORT_SPEED_NA_E;
++    int mode = CPSS_PORT_INTERFACE_MODE_NA_E;
++    int last_sfp_speed = 0;
++
++    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsBmp);
++
++    if (speed_select == MFG_PORT_SPEED_N)
++    {
++        for (port = SFP_MAC_PORT_START; port <= SFP_MAC_PORT_END; port ++)
++            CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, port);
++
++        cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_FALSE, mode, speed);
++
++    }
++    else
++    {
++        /* Speed and Type */
++        if (speed_select == MFG_PORT_SPEED_10G)
++        {
++            speed = CPSS_PORT_SPEED_10000_E;
++            mode = CPSS_PORT_INTERFACE_MODE_KR_E;
++            current_sfp_speed = 10;
++        }
++        else if (speed_select == MFG_PORT_SPEED_25G)
++        {
++            speed = CPSS_PORT_SPEED_25000_E;
++            mode = CPSS_PORT_INTERFACE_MODE_KR_E;
++            current_sfp_speed = 25;
++        }
++
++        /* Open last config to be compared */
++        last_sfp_speed = Read_SFP_Speed_Note();
++        if ( last_sfp_speed == 0)
++        {
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "echo \"[SDK] Get SFP speed fail ... File not exist !\" >> %s", FILE_SPEED_NOTE);
++            rv_s = system(cmd_buf);
++        }
++        else if ( last_sfp_speed < 0)
++        {
++            printf(" [MFG] Get SFP speed fail ... \n");
++        }
++
++        /* printf(" [MFG - DEBUG ] cmp speed : last_sfp_speed = %d , current_sfp_speed = %d \n", last_sfp_speed, current_sfp_speed); */
++        if (current_sfp_speed != last_sfp_speed)
++        {
++
++            /* Write speed to note */
++            fd = fopen(NOTE_SFP_SPEED, "w+");
++            memset(buf, 0x0, sizeof(buf));
++            snprintf(buf, sizeof(buf), "%d\n", current_sfp_speed);
++            fprintf(fd, buf);
++            fclose(fd);
++
++            /* PortBitMap assign */
++            for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port ++)
++            {
++                CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, port);
++            }
++
++            /* Set port configuration */
++            cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_TRUE, mode, speed);
++            usleep(ACTION_DELAY);
++
++            /* Set LED by Linux I2C command */
++            #if 0
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "sh /home/root/mfg/mfg_sources/gemini_speed_led_control.sh SFP %d", current_sfp_speed);
++            rv_s = system(cmd_buf);
++            #else
++            LED_Setting(SFP, current_sfp_speed);
++            #endif
++
++            /* implement Tx-parametes. */
++            if (current_sfp_speed == 25)
++            {
++                if (interface_type == 1)
++                    Tx_Preemphasis_Set(1, 1);    /* CR4 , if requested */
++                else if (interface_type == 4)
++                    Tx_Preemphasis_Set(1, 4);    /* LBM , if requested */
++                else
++                    Tx_Preemphasis_Set(1, 2);    /* default set CAUI-4 */
++            }
++            else if (current_sfp_speed == 10)
++            {
++                if (interface_type == 4)
++                    Tx_Preemphasis_Set(1, 4);    /* LBM , if requested */
++                else
++                    Tx_Preemphasis_Set(1, 3);
++            }
++            usleep(ACTION_DELAY);
++
++            /* Do RX-Auto tune */
++            for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port ++)
++            {
++                rv = cpssDxChPortSerdesAutoTune(DEVNUM, port, CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
++                if (rv)
++                    printf(" [MFG] MAC Port %d Rx auto tune - fail, need to retry.\n", port);
++            }
++
++            printf(" [MFG] SFP speed setting : %dG Done\n", current_sfp_speed);
++        }
++    }
++
++    return GT_OK;
++}
++
++int Backup_Default_Vlan(void)
++{
++    GT_U16 vlanId = 1;
++    CPSS_PORTS_BMP_STC portsMem;
++    CPSS_PORTS_BMP_STC portsTag;
++    CPSS_DXCH_BRG_VLAN_INFO_STC vlanInfo;
++    CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC portsTaggingCmd;
++    GT_BOOL isValid;
++    int ret;
++
++    if (isDefVlanBak == 0)
++    {
++        ret = cpssDxChBrgVlanEntryRead(DEVNUM, vlanId, &portsMem, &portsTag, &vlanInfo, &isValid, &portsTaggingCmd);
++
++        if (ret == GT_OK) {
++            cpssOsMemCpy(&def_vlan_bak.portMem, &portsMem, sizeof(CPSS_PORTS_BMP_STC));
++            cpssOsMemCpy(&def_vlan_bak.portsTag, &portsTag, sizeof(CPSS_PORTS_BMP_STC));
++            cpssOsMemCpy(&def_vlan_bak.vlanInfo, &vlanInfo, sizeof(CPSS_DXCH_BRG_VLAN_INFO_STC));
++            cpssOsMemCpy(&def_vlan_bak.isValid, &isValid, sizeof(GT_BOOL));
++            cpssOsMemCpy(&def_vlan_bak.portsTaggingCmd, &portsTaggingCmd, sizeof(CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC));
++
++            isDefVlanBak = 1;
++        }
++        else
++            return GT_FAIL;
++    }
++
++    return GT_OK;
++}
++
++void Clear_VlanPort_Memory(int vlan_id)
++{
++    CPSS_PORTS_BMP_STC portsMem;
++    CPSS_PORTS_BMP_STC portsTag;
++
++    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsMem);
++    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsTag);
++
++    cpssDxChBrgVlanEntryWrite(DEVNUM, vlan_id, &portsMem, &portsTag, &def_vlan_bak.vlanInfo, &def_vlan_bak.portsTaggingCmd);
++}
++
++void Restore_Default_Vlan(void)
++{
++     cpssDxChBrgVlanEntryWrite(DEVNUM, 1, &def_vlan_bak.portMem, &def_vlan_bak.portsTag, &def_vlan_bak.vlanInfo, &def_vlan_bak.portsTaggingCmd);
++}
++
++GT_STATUS Vlan_Mode_Set (IN GT_U8 mode)
++{
++    GT_U16 i, vid, vlan_count, rv_qsfp_speed, vlan_first_diagnal;
++    GT_PORT_NUM port;
++    CPSS_PORTS_BMP_STC port_bmp, port_tag;
++    CPSS_DXCH_BRG_VLAN_INFO_STC vlan_info;
++    CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC port_tag_cmd;
++
++    cpssOsMemSet(&vlan_info, 0, sizeof(CPSS_DXCH_BRG_VLAN_INFO_STC));
++    cpssOsMemSet(&port_tag_cmd, 0, sizeof(CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC));
++    vlan_info.floodVidx = 0xFFF;
++    vlan_info.naMsgToCpuEn = 1;
++
++    /* Get QSFP setting status first. */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Tx-parameters setting : FAIL\n");
++        return GT_FAIL;
++    }
++
++    /* Start setting VLAN by request mode */
++    if (mode == 0)
++    {
++        printf(" [MFG] Set Vlan to Normal Stage\n");
++
++        vid = 1;
++        for (vlan_count = 2; vlan_count < 4095; vlan_count++)
++        {
++            cpssDxChBrgVlanEntryInvalidate(DEVNUM, vlan_count);
++        }
++
++        Restore_Default_Vlan();
++
++        /* SFP ports */
++        for (vlan_count = SFP_MAC_PORT_START; vlan_count <= SFP_MAC_PORT_END; vlan_count++)
++        {
++            cpssDxChBrgVlanPortVidSet(DEVNUM, vlan_count, CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports */
++        for (i = 1 ; i <= array_index ; i++)
++        {
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++    }
++    else if (mode == 1)
++    {
++        printf(" [MFG] Set Vlan to 2-port per vlan.\n");
++
++        Clear_VlanPort_Memory(1);
++
++        /* SFP ports */
++        for (vid = 2, port = SFP_MAC_PORT_START ; vid <= ( 1 + SFP_VLAN_PAIR ) ; vid++, port += 2)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port+1);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, vid);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, port+1, CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports */
++        for (i = 1, vid = ( 1 + ( SFP_VLAN_PAIR + 1 )) ; i <= array_index ; i += 2, vid++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i]);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i+1]);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, vid);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i+1], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++    }
++    else if (mode == 2)
++    {
++        printf(" [MFG] Set Vlan to 1-port per vlan.\n\n");
++
++        Clear_VlanPort_Memory(1);
++
++        /* SFP ports */
++        for (vid = 2, port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; vid++, port ++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports */
++        for (i = 1, vid = ( 1 + SFP_MAC_PORT_END + 1 ) ; i <= array_index ; i++, vid++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i]);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++    }
++    else if (mode == 3)
++    {
++        printf(" [MFG] Set Vlan to 1-port per vlan, for Pre-test usage.\n\n");
++
++        Clear_VlanPort_Memory(1);
++
++        /* SFP ports */
++        for (vid = 2, port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; vid++, port ++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            if (port == SFP_MAC_PORT_END)
++                cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, ( 1 + SFP_MAC_PORT_END + 1 ));   /* last SFP pkt to 1st QSFP */
++            else
++                cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports */
++        for (i = 1, vid = ( 1 + SFP_MAC_PORT_END + 1 ) ; i <= array_index ; i++, vid++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i]);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, (vid + 1) );   /* pkt to next QSFP, and last QSFP drop it. */
++        }
++    }
++    else if (mode == 4)
++    {
++        printf(" [MFG] Set Vlan to 2-port per vlan, for Burn-in test usage.\n");
++
++        Clear_VlanPort_Memory(1);
++        vlan_first_diagnal = 1 + ( SFP_VLAN_PAIR + 1 ) + 4;
++
++        /* SFP ports , vid = 2 ~ 25 */
++        for (vid = 2, port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; vid++, port += 2)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port+1);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, vid);
++            if ( (port + 1) != SFP_MAC_PORT_END )    /* except last SFP , other even ports set normally. */
++                cpssDxChBrgVlanPortVidSet(DEVNUM, port+1, CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports , vid = 26 ~ 29 */
++        for (i = 1, vid = ( 1 + ( SFP_VLAN_PAIR + 1 )) ; i <= array_index ; i += 2, vid++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i]);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i+1]);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++        /*            for vlan diagnal '/' pair group , vid = 30 ~ 34, SFP48-QSFP1 ; QSFP2-QSFP3 ; ... ; QSFP6-QSFP7 ; QSFP8-SFP47 . Only set QSFP-EVEN 's pvid */
++        for (i = 2, vid = vlan_first_diagnal ; i <= array_index ; i += 2, vid++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++
++            if ((i - 1) == 1)    /* 1st QSFP port , vlan 30 with last SFP port */
++            {
++                CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i-1]);
++                CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, SFP_MAC_PORT_END);
++                cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++                cpssDxChBrgVlanPortVidSet(DEVNUM, SFP_MAC_PORT_END, CPSS_DIRECTION_INGRESS_E, vid);
++                /* special set to vlan 31, for next vlan usage */
++                vid++;
++                vlan_info.fidValue = vid;
++                CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            }
++
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i]);
++
++            if (i == array_index)    /* last QSFP pair with SFP47 */
++                CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, (SFP_MAC_PORT_END - 1));
++            else
++                CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, work_ports[i+1]);
++
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++    }
++    else
++        printf(" [MFG] No support currently!\n");
++
++    return GT_OK;
++}
++
++/*
++CPSS_DXCH_PORT_FEC_MODE_ENT{
++    CPSS_DXCH_PORT_FEC_MODE_ENABLED_E,
++    CPSS_DXCH_PORT_FEC_MODE_DISABLED_E,
++    CPSS_DXCH_PORT_RS_FEC_MODE_ENABLED_E,
++    CPSS_DXCH_PORT_BOTH_FEC_MODE_ENABLED_E
++};
++*/
++GT_STATUS Port_Status_Show (int PortNum)
++{
++    char link_status[8]={0}, speed_status[8]={0}, fec_status[16]={0};
++    GT_BOOL linkstatus;
++    CPSS_PORT_SPEED_ENT speed;
++    CPSS_DXCH_PORT_FEC_MODE_ENT mode;
++    GT_STATUS ret = GT_OK;
++
++    memset(link_status, 0x0, sizeof(link_status));
++    memset(speed_status, 0x0, sizeof(speed_status));
++    memset(fec_status, 0x0, sizeof(fec_status));
++
++    /* Link Status */
++    ret = cpssDxChPortLinkStatusGet(DEVNUM, PortNum, &linkstatus);
++    if (ret)
++        printf(" [MFG] Error occure during getting Port %d link status\n", PortNum);
++
++    if (linkstatus == GT_TRUE)
++        snprintf(link_status, sizeof(link_status), "UP");
++    else
++        snprintf(link_status, sizeof(link_status), "DOWN");
++
++    /* Link Speed */
++    ret = cpssDxChPortSpeedGet(DEVNUM, PortNum, &speed);
++    if (ret)
++        printf(" [MFG] Error occure during getting Port %d speed\n", PortNum);
++
++    if (speed == CPSS_PORT_SPEED_100G_E)
++        snprintf(speed_status, sizeof(speed_status), "100G");
++    else if (speed == CPSS_PORT_SPEED_50000_E)
++        snprintf(speed_status, sizeof(speed_status), "50G");
++    else if (speed == CPSS_PORT_SPEED_40000_E)
++        snprintf(speed_status, sizeof(speed_status), "40G");
++    else if (speed == CPSS_PORT_SPEED_25000_E)
++        snprintf(speed_status, sizeof(speed_status), "25G");
++    else if (speed == CPSS_PORT_SPEED_10000_E)
++        snprintf(speed_status, sizeof(speed_status), "10G");
++    else
++        snprintf(speed_status, sizeof(speed_status), "none");
++
++    /* FEC Status */
++    ret = cpssDxChPortFecModeGet(DEVNUM, PortNum, &mode);
++    if (ret)
++        printf(" [MFG] Error occure during getting Port %d FEC mode\n", PortNum);
++
++    if (mode == CPSS_DXCH_PORT_FEC_MODE_ENABLED_E)
++        snprintf(fec_status, sizeof(fec_status), "FC-FEC");
++    else if (mode == CPSS_DXCH_PORT_RS_FEC_MODE_ENABLED_E)
++        snprintf(fec_status, sizeof(fec_status), "RS-FEC");
++    else if (mode == CPSS_DXCH_PORT_BOTH_FEC_MODE_ENABLED_E)
++        snprintf(fec_status, sizeof(fec_status), "BOTH-EN");
++    else
++        snprintf(fec_status, sizeof(fec_status), "Disable");
++
++    printf(" %2d \t%4s \t%4s \t%6s\n", PortNum, link_status, speed_status, fec_status);
++    return GT_OK;
++}
++
++GT_STATUS Show_Ports_Status (void)
++{
++    int port, index, rv_qsfp_speed;
++    GT_STATUS ret = GT_OK;
++
++    printf("[MFG] Port Status display\n");
++    printf("Port \tLink \tSpeed \tFec_Mode\n");
++    printf("==== \t==== \t===== \t========\n");
++
++    for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        ret = Port_Status_Show(port);
++        if (ret)
++            printf(" [MFG] Show_Ports_Status Error occure during getting Port %d status.\n", port);
++        usleep(PORT_ACTION_DELAY);
++    }
++
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Tx-parameters setting : FAIL\n");
++        return GT_FAIL;
++    }
++
++    for (index = 1 ; index <= array_index ; index++)
++    {
++        ret = Port_Status_Show(work_ports[index]);
++        if (ret)
++            printf(" [MFG] Show_Ports_Status Error occure during getting Port %d status.\n", work_ports[index]);
++        usleep(PORT_ACTION_DELAY);
++    }
++
++    printf("\n");
++    return GT_OK;
++}
++
++GT_STATUS Ports_RX_Training(IN GT_U8 type)
++{
++    int port, index, rv_qsfp_speed;
++    GT_STATUS ret = GT_OK;
++
++    if ( type == 1)    /* SFP */
++    {
++        for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++        {
++            ret = cpssDxChPortSerdesAutoTune(DEVNUM, port, CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
++            if (ret != GT_OK)
++                printf(" [MFG] Error occure during Port %d RX Training\n", port);
++        }
++    }
++    else if ( type == 2)    /* QSFP */
++    {
++        rv_qsfp_speed = Read_QSFP_Speed_Note();
++        if ( rv_qsfp_speed <= 0)
++        {
++            printf(" [MFG] Get QSFP speed fail ... Skip RX Training\n");
++            return GT_FAIL;
++        }
++
++#if 1
++        for (index = 1 ; index <= array_index ; index++)
++        {
++            ret = cpssDxChPortSerdesAutoTune(DEVNUM, work_ports[index], CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
++            if (ret != GT_OK)
++                printf(" [MFG] Error occure during Port %d RX Training\n", work_ports[index]);
++        }
++#else
++        for (index = 1 ; index <= array_index ; index++)
++        {
++            if ((rv_qsfp_speed != 100) && (rv_qsfp_speed != 40))
++            {
++                rv = cpssDxChPortSerdesAutoTune(DEVNUM, work_ports[index], CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
++                if (rv)
++                    printf(" [MFG] MAC Port %d Rx auto tune - fail.\n", work_ports[index]);
++            }
++            else
++            {
++                rv = cpssDxChPortSerdesEnhancedAutoTune(DEVNUM, work_ports[index], 0, 15);
++                if (ret != GT_OK) {
++                    printf("[MFG] Error occure during Port %d Enhanced Auto Tune\n", work_ports[index]);
++                } else {
++                    ret = cpssDxChPortSerdesAutoTune(DEVNUM, work_ports[index], CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_ADAPTIVE_RX_TRAINING_START_E);
++                    if (ret != GT_OK)
++                        printf("[MFG] Error occure during Port %d ADAPTIVE RX Training\n", work_ports[index]);
++                }
++            }
++        }
++#endif
++    }
++    else
++    {
++        printf(" [MFG] Error input ! \n");
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Ports_FEC_Set(IN GT_U8 type , IN GT_U8 fec_mode)
++{
++    int port, index, rv_qsfp_speed, rv_if;
++    int mode = CPSS_DXCH_PORT_FEC_MODE_DISABLED_E;
++    GT_STATUS ret = GT_OK;
++    char fec_mode_str [3][16] = {"FEC-Disable", "FC-FEC", "RS-FEC"};
++
++    /* Decide FEC mode type value */
++    switch (fec_mode)
++    {
++        case 0:
++            mode = CPSS_DXCH_PORT_FEC_MODE_DISABLED_E;
++            break;
++        case 1:
++            mode = CPSS_DXCH_PORT_FEC_MODE_ENABLED_E;
++            break;
++        case 2:
++            mode = CPSS_DXCH_PORT_RS_FEC_MODE_ENABLED_E;
++            break;
++        default :
++            printf(" [MFG] Not support mode.\n");
++            return GT_OK;
++    }
++
++    /* Setting */
++    if (type == 1 )    /* SFP */
++    {
++        for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++        {
++            ret = cpssDxChPortFecModeSet(DEVNUM, port, mode);
++            if (ret)
++                printf(" [MFG] Ports_FEC_Set Error occure during setting Port %d FEC mode\n", port);
++            usleep(PORT_ACTION_DELAY);
++        }
++        printf(" [MFG] SFP FEC_Set mode %s : Done.\n", fec_mode_str[fec_mode]);
++
++        /* Re-set Tx-parameters because FEC setting will restore Tx to default @@ */
++        rv_if = Read_SFP_Interface_Note();
++        if ( rv_if < 0)
++        {
++            printf(" [MFG] Get Interface type fail ... re Tx-parameters setting : FAIL\n");
++        }
++        Tx_Preemphasis_Set(1, rv_if);
++
++        /* Re-do Rx auto-tuning */
++        Ports_RX_Training(1);
++    }
++    else if ( type == 2)    /* QSFP */
++    {
++        rv_qsfp_speed = Read_QSFP_Speed_Note();
++        if ( rv_qsfp_speed <= 0)
++        {
++            printf(" [MFG] Get QSFP speed fail ... FEC setting : FAIL\n");
++            return GT_FAIL;
++        }
++        for (index = 1 ; index <= array_index ; index++)
++        {
++            ret = cpssDxChPortFecModeSet(DEVNUM, work_ports[index], mode);
++            if (ret)
++                printf(" [MFG] Ports_FEC_Set Error occure during setting Port %d status.\n", work_ports[index]);
++            usleep(PORT_ACTION_DELAY);
++        }
++        printf(" [MFG] QSFP FEC_Set mode %s : Done.\n", fec_mode_str[fec_mode]);
++
++        /* Re-set Tx-parameters because FEC setting will restore Tx to default @@ */
++        rv_if = Read_QSFP_Interface_Note();
++        if ( rv_if < 0)
++        {
++            printf(" [MFG] Get Interface type fail ... re Tx-parameters setting : FAIL\n");
++        }
++        Tx_Preemphasis_Set(2, rv_if);
++
++        /* Re-do Rx auto-tuning */
++        Ports_RX_Training(2);
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Ports_JumboFrame_Size_Set(IN GT_U16 mruSize)
++{
++    int port, index, rv_qsfp_speed;
++    int vlan_id = 1, mruIndex = 0, mruValue = mruSize;    /* size max = 10240 */
++    GT_STATUS ret = GT_OK;
++
++    /* SFP */
++    for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        ret = cpssDxChPortMruSet(DEVNUM, port, mruSize);
++        if (ret)
++            printf(" [MFG] Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChPortMruSet with size %d , on Port %d\n", mruSize, port);
++        usleep(PORT_ACTION_DELAY);
++
++        ret = cpssDxChBrgVlanMruProfileIdxSet(DEVNUM, vlan_id, mruIndex);
++        if (ret)
++            printf(" [MFG] Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChBrgVlanMruProfileIdxSet , on Port %d\n", port);
++        usleep(PORT_ACTION_DELAY);
++
++        ret = cpssDxChBrgVlanMruProfileValueSet(DEVNUM, mruIndex, mruValue);
++        if (ret)
++            printf(" [MFG] Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChBrgVlanMruProfileValueSet , on Port %d\n", port);
++        usleep(PORT_ACTION_DELAY);
++    }
++
++    /* QSFP */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Tx-parameters setting : FAIL\n");
++        return GT_FAIL;
++    }
++    for (index = 1 ; index <= array_index ; index++)
++    {
++        ret = cpssDxChPortMruSet(DEVNUM, work_ports[index], mruSize);
++        if (ret)
++            printf(" [MFG] Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChPortMruSet with size %d , on Port %d\n", mruSize, work_ports[index]);
++        usleep(PORT_ACTION_DELAY);
++
++        ret = cpssDxChBrgVlanMruProfileIdxSet(DEVNUM, vlan_id, mruIndex);
++        if (ret)
++            printf(" [MFG] Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChBrgVlanMruProfileIdxSet , on Port %d\n", work_ports[index]);
++        usleep(PORT_ACTION_DELAY);
++
++        ret = cpssDxChBrgVlanMruProfileValueSet(DEVNUM, mruIndex, mruValue);
++        if (ret)
++            printf(" [MFG] Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChBrgVlanMruProfileValueSet , on Port %d\n", work_ports[index]);
++        usleep(PORT_ACTION_DELAY);
++    }
++
++    printf(" [MFG] JumboFrame Set size %d : Done.\n", mruSize);
++    return GT_OK;
++}
++
++/* send a specific packet to target "port" */
++GT_STATUS mtlPktSend(GT_U8 devNum, GT_U8 portNum, GT_U16 portVID)
++{
++    CPSS_DXCH_NET_TX_PARAMS_STC pcktParams;
++    GT_U32                      numOfBufs = 1;
++    GT_STATUS                   rc;
++
++    osMemSet(&pcktParams, 0, sizeof(CPSS_DXCH_NET_TX_PARAMS_STC));
++#if 1
++    #if 0    /* reference from Mercedes3, but still can't send packet to QSFP .*/
++    pcktParams.sdmaInfo.txQueue = 7;
++    pcktParams.sdmaInfo.invokeTxBufferQueueEvent = GT_TRUE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = GT_TRUE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.tc = 7;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dp = CPSS_DP_GREEN_E;
++    pcktParams.dsaParam.commonParams.vid = 4094;
++
++    pcktParams.dsaParam.dsaInfo.fromCpu.isTrgPhyPortValid = GT_TRUE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstEport = portNum;
++    pcktParams.dsaParam.dsaInfo.fromCpu.tag0TpidIndex = 0;
++    #else
++    GT_UINTPTR                  txEventHndl;
++    pcktParams.sdmaInfo.evReqHndl = txEventHndl;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId = 1;
++
++    pcktParams.sdmaInfo.txQueue = 1;
++    pcktParams.sdmaInfo.invokeTxBufferQueueEvent = GT_FALSE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = GT_FALSE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.tc = 1;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dp = 0;
++    pcktParams.dsaParam.commonParams.vid = portVID;
++    #endif
++
++    pcktParams.sdmaInfo.recalcCrc = 1;
++    pcktParams.packetIsTagged = GT_FALSE;
++    pcktParams.dsaParam.dsaType = CPSS_DXCH_NET_DSA_CMD_FROM_CPU_E;
++    pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev = PRV_CPSS_HW_DEV_NUM_MAC(devNum);    /* if ref Mercedes3 set 1008, will fail sending. */
++    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn = GT_FALSE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered = GT_FALSE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.srcId = 0;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type = CPSS_INTERFACE_PORT_E;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum = PRV_CPSS_HW_DEV_NUM_MAC(devNum);
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum = portNum;       /* portNum >= 64 is fail now QQQQQ */
++    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged = GT_FALSE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU = GT_FALSE;
++    pcktParams.dsaParam.commonParams.cfiBit = 0;
++    pcktParams.dsaParam.commonParams.vpt = 0;
++    pcktParams.dsaParam.commonParams.dsaTagType = CPSS_DXCH_NET_DSA_TYPE_EXTENDED_E;  /* value same as CPSS_DXCH_NET_DSA_2_WORD_TYPE_ENT ; if use CPSS_DXCH_NET_DSA_4_WORD_TYPE_ENT no pkt out. */
++    pcktParams.dsaParam.commonParams.dropOnSource = GT_FALSE;
++    pcktParams.dsaParam.commonParams.packetIsLooped = GT_FALSE;
++#else    /* ref. Marvell cpssDxChNetIfSdmaSyncTxPacketSend() of cpssDxChNetIfUT.c */
++    pcktParams.sdmaInfo.txQueue = 3;
++    pcktParams.sdmaInfo.recalcCrc = GT_FALSE;
++    pcktParams.sdmaInfo.invokeTxBufferQueueEvent = GT_FALSE;
++    pcktParams.sdmaInfo.evReqHndl = 0;
++    pcktParams.packetIsTagged = GT_FALSE;
++    pcktParams.dsaParam.dsaType = CPSS_DXCH_NET_DSA_CMD_FROM_CPU_E;
++    pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev = devNum;
++    pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = GT_TRUE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.tc = 7;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dp = CPSS_DP_GREEN_E;
++    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn = GT_TRUE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered = GT_TRUE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.srcId = 0;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type = CPSS_INTERFACE_PORT_E;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum = devNum;
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum = portNum;       /* Marvell set 0 , but i didnt change here */
++    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId = 1;
++    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged = GT_TRUE;
++    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU = GT_TRUE;
++    pcktParams.dsaParam.commonParams.cfiBit = 1;
++    pcktParams.dsaParam.commonParams.vid = portVID;   /* Marvell set 100 , but i didnt change here */
++    pcktParams.dsaParam.commonParams.vpt = 3;
++    pcktParams.dsaParam.commonParams.dsaTagType = CPSS_DXCH_NET_DSA_4_WORD_TYPE_ENT;
++    pcktParams.dsaParam.commonParams.dropOnSource = GT_TRUE;
++    pcktParams.dsaParam.commonParams.packetIsLooped = GT_TRUE;
++#endif
++    /* Destination Address */
++    buffList[0][0]  = 0x00;
++    buffList[0][1]  = 0x03;
++    buffList[0][2]  = 0x6d;
++    buffList[0][3]  = devNum;
++    buffList[0][4]  = 0;
++    #if 0    /* 2020 mark off */
++    if(portNum%2)
++        buffList[0][5]  = portNum-1;
++    else
++        buffList[0][5]  = portNum+1;
++    #else
++        buffList[0][5]  = 0x01;
++    #endif
++
++    /* Source Address */
++    buffList[0][6]  = 0x00;
++    buffList[0][7]  = 0x03;
++    buffList[0][8]  = 0x6d;
++    buffList[0][9]  = devNum;
++    buffList[0][10]  = 0;
++    #if 0    /* 2020 mark off */
++    buffList[0][11]  = portNum;
++    #else
++        buffList[0][11]  = 0x02;
++    #endif
++
++    /* Data */
++    buffList[0][12] = 0x00;
++    buffList[0][13] = 0x00;
++    buffList[0][14] = 0x00;
++    buffList[0][15] = 0x00;
++    buffList[0][16] = 0x00;
++    buffList[0][17] = 0x00;
++    buffList[0][18] = 0x00;
++    buffList[0][19] = 0x00;
++
++#if 0     /* 2020 mark off , ref from Mercedes3 */
++    rc = cpssDxChNetIfSdmaTxQueueEnable(devNum, /* traffic class Quary [0..7] */ 0, /* Enable*/ GT_TRUE);
++    if (rc != GT_OK)
++    {
++        printf(" [MFG] cpssDxChNetIfSdmaTxQueueEnable fail , rc = %d\n", rc);
++        return rc;
++    }
++#endif
++
++#if 0
++printf(" # pcktParams.sdmaInfo.txQueue = %d\n", pcktParams.sdmaInfo.txQueue);
++printf(" # pcktParams.sdmaInfo.recalcCrc = %d\n", pcktParams.sdmaInfo.recalcCrc );
++printf(" # pcktParams.sdmaInfo.invokeTxBufferQueueEvent = %d\n", pcktParams.sdmaInfo.invokeTxBufferQueueEvent );
++printf(" # pcktParams.packetIsTagged = %d\n", pcktParams.packetIsTagged );
++printf(" # pcktParams.dsaParam.dsaType = %d\n", pcktParams.dsaParam.dsaType );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.tc = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.tc );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dp = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dp );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.srcId = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.srcId );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged );
++printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU );
++printf(" # pcktParams.dsaParam.commonParams.cfiBit = %d\n", pcktParams.dsaParam.commonParams.cfiBit );
++printf(" # pcktParams.dsaParam.commonParams.vid = %d\n", pcktParams.dsaParam.commonParams.vid );
++printf(" # pcktParams.dsaParam.commonParams.vpt = %d\n", pcktParams.dsaParam.commonParams.vpt );
++printf(" # pcktParams.dsaParam.commonParams.dsaTagType = %d\n", pcktParams.dsaParam.commonParams.dsaTagType );
++printf(" # pcktParams.dsaParam.commonParams.dropOnSource = %d\n", pcktParams.dsaParam.commonParams.dropOnSource );
++printf(" # pcktParams.dsaParam.commonParams.packetIsLooped = %d\n", pcktParams.dsaParam.commonParams.packetIsLooped );
++printf(" # buffLenList = %d\n", buffLenList[0] );
++printf(" # numOfBufs = %d\n\n\n", numOfBufs );
++#endif
++
++    rc = cpssDxChNetIfSdmaSyncTxPacketSend(devNum, &pcktParams, buffList, buffLenList, numOfBufs);
++    if (rc != GT_OK)
++    {
++        printf(" [MFG] cpssDxChNetIfSdmaSyncTxPacketSend fail , rc = %d\n", rc);
++        return rc;
++    }
++
++    return rc;
++}
++
++GT_STATUS mtl_tx_init(GT_U8 devNum, GT_U8 portNum, GT_U16 portVID)
++{
++    GT_STATUS rc;
++
++    buffList[0] = cpssOsCacheDmaMalloc(buffLenList[0]*sizeof(GT_U8));
++    rc = mtlPktSend(devNum, portNum, portVID);
++    cpssOsCacheDmaFree(buffList[0]);
++    if (rc != GT_OK)
++        return rc;
++
++    return rc;
++}
++
++/* param 'mode': 0 = normal test ; 1 = pre-test ; 2 = burn-in */
++void Send_Packet_From_CPU(int portNum, GT_U32 packetNum, int mode)
++{
++    GT_U16 portVID = 1;
++    GT_STATUS rc;
++    GT_U32 counter;
++
++    if(mode == 0)
++    {
++        printf("\r\n### sendPacketFromCPU start time:\r\n");
++        rv_s = system("date | tee /tmp/sendPacketFromCPU_time");
++    }
++
++    for(counter = 0 ; counter < packetNum ; counter++)
++    {
++        rc = mtl_tx_init(DEVNUM, portNum, portVID);
++        if(rc != GT_OK)
++        {
++            printf("\r\n# Port %2d mtl_tx_init : 1st FAIL [ Packet Number: %d ]\r\n", portNum, counter);
++
++            if( cpssDxChPortMacResetStateSet(DEVNUM, portNum, /*status*/GT_TRUE) != GT_OK )
++                printf("\r\nFAIL: cpssDxChPortMacResetStateSet TRUE on port %d \r\n", portNum);
++            usleep(10000);
++            if( cpssDxChPortMacResetStateSet(DEVNUM, portNum, /*status*/GT_FALSE) != GT_OK )
++                printf("\r\nFAIL: cpssDxChPortMacResetStateSet FALSE on port %d \r\n", portNum);
++            sleep(3);
++
++            rc = mtl_tx_init(DEVNUM, portNum, portVID);
++            if(rc != GT_OK)
++                printf("\r\n# Port %2d mtl_tx_init: 2st FAIL [ Packet Number: %d ]\r\n", portNum, counter);
++        }
++
++#if 0
++        if((counter % 100) == 0)
++            usleep(2000);   /* orig 100ms */
++        else
++            usleep(1000);    /* orig 10ms */
++#endif
++    }
++
++    if(mode == 0)
++    {
++        printf("\r\n### sendPacketFromCPU end time:\r\n");
++        rv_s = system("date | tee -a /tmp/sendPacketFromCPU_time");
++    }
++}
++
++GT_STATUS Show_Counters(void)
++{
++    CPSS_PORT_MAC_COUNTER_SET_STC   portmaccountersetarrayptr;
++    struct mib_counter *mibCounters= malloc(sizeof(struct mib_counter));
++    GT_STATUS rv;
++    int port, rv_qsfp_speed, index;
++
++    memset(mibCounters, 0, sizeof(mibCounters));
++
++    /* SFP */
++    for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        cpssOsMemSet(&portmaccountersetarrayptr, 0, sizeof(portmaccountersetarrayptr));
++        rv = cpssDxChPortMacCountersOnPortGet(DEVNUM, port, &portmaccountersetarrayptr);
++        if (rv != GT_OK)
++        {
++            printf(" [MFG] error occur(%d)\n", __LINE__);
++            return rv;
++        }
++
++        mibCounters->per_port_send_packet[DEVNUM][port] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++        mibCounters->per_port_recv_packet[DEVNUM][port] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++        mibCounters->goodOctetsRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[0];
++        mibCounters->goodOctetsSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[0];
++        mibCounters->ucPktsRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.ucPktsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.ucPktsRcv.l[0];
++        mibCounters->ucPktsSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.ucPktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.ucPktsSent.l[0];
++        mibCounters->mcPktsSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.mcPktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.mcPktsSent.l[0];
++        mibCounters->mcPktsRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.mcPktsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.mcPktsRcv.l[0];
++        mibCounters->pkts64Octets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts64Octets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts64Octets.l[0];
++/*
++        mibCounters->pkts65to127Octets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts65to127Octets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts65to127Octets.l[0];
++        mibCounters->pkts128to255Octets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts128to255Octets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts128to255Octets.l[0];
++        mibCounters->pkts256to511Octets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts256to511Octets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts256to511Octets.l[0];
++        mibCounters->pkts512to1023Octets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts512to1023Octets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts512to1023Octets.l[0];
++        mibCounters->pkts1024tomaxOoctets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts1024tomaxOoctets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts1024tomaxOoctets.l[0];
++        mibCounters->pkts1024to1518Octets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts1024to1518Octets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts1024to1518Octets.l[0];
++        mibCounters->pkts1519toMaxOctets[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.pkts1519toMaxOctets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts1519toMaxOctets.l[0];
++        mibCounters->goodPktsSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.goodPktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodPktsSent.l[0];
++        mibCounters->goodPktsRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.goodPktsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodPktsRcv.l[0];
++        mibCounters->badCrc[DEVNUM][port = ((unsigned long long int)portmaccountersetarrayptr.badCrc.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.badCrc.l[0];
++        mibCounters->badPktsRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.badPktsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.badPktsRcv.l[0];
++        mibCounters->badOctetsRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.badOctetsRcv.l[1] << 32) +  (unsigned long long int)portmaccountersetarrayptr.badOctetsRcv.l[0];
++        mibCounters->goodFcRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.goodFcRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodFcRcv.l[0];
++        mibCounters->badFcRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.badFcRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.badFcRcv.l[0];
++        mibCounters->macTransmitErr[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.macTransmitErr.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.macTransmitErr.l[0];
++        mibCounters->macRcvError[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.macRcvError.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.macRcvError.l[0];
++        mibCounters->brdcPktsSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.brdcPktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.brdcPktsSent.l[0];
++        mibCounters->brdcPktsRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.brdcPktsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.brdcPktsRcv.l[0];
++        mibCounters->dropEvents[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.dropEvents.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.dropEvents.l[0];
++        mibCounters->collisions[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.collisions.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.collisions.l[0];
++        mibCounters->lateCollisions[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.lateCollisions.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.lateCollisions.l[0];
++        mibCounters->undersizePkts[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.undersizePkts.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.undersizePkts.l[0];
++        mibCounters->fragmentsPkts[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.fragmentsPkts.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.fragmentsPkts.l[0];
++        mibCounters->oversizePkts[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.oversizePkts.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.oversizePkts.l[0];
++        mibCounters->jabberPkts[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.jabberPkts.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.jabberPkts.l[0];
++        mibCounters->multiplePktsSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.multiplePktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.multiplePktsSent.l[0];
++        mibCounters->deferredPktsSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.deferredPktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.deferredPktsSent.l[0];
++        mibCounters->excessiveCollisions[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.excessiveCollisions.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.excessiveCollisions.l[0];
++        mibCounters->unrecogMacCntrRcv[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.unrecogMacCntrRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.unrecogMacCntrRcv.l[0];
++        mibCounters->fcSent[DEVNUM][port] = ((unsigned long long int)portmaccountersetarrayptr.fcSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.fcSent.l[0];
++*/
++
++        printf("----------------------------------- port %d -------------------------------------\r\n", port);
++        printf("per_port_send_packet: %llu\r\n", mibCounters->per_port_send_packet[DEVNUM][port]);
++        printf("per_port_recv_packet: %llu\r\n", mibCounters->per_port_recv_packet[DEVNUM][port]);
++        printf("goodOctetsRcv: %llu\r\n", mibCounters->goodOctetsRcv[DEVNUM][port]);
++        printf("goodOctetsSent: %llu\r\n", mibCounters->goodOctetsSent[DEVNUM][port]);
++        printf("ucPktsRcv: %llu\r\n", mibCounters->ucPktsRcv[DEVNUM][port]);
++        printf("ucPktsSent: %llu\r\n", mibCounters->ucPktsSent[DEVNUM][port]);
++        printf("mcPktsSent: %llu\r\n", mibCounters->mcPktsSent[DEVNUM][port]);
++        printf("mcPktsRcv: %llu\r\n", mibCounters->mcPktsRcv[DEVNUM][port]);
++        printf("pkts64Octets: %llu\r\n", mibCounters->pkts64Octets[DEVNUM][port]);
++/*
++        printf("pkts65to127Octets: %llu\r\n", mibCounters->pkts65to127Octets[DEVNUM][port]);
++        printf("pkts128to255Octets: %llu\r\n", mibCounters->pkts128to255Octets[DEVNUM][port]);
++        printf("pkts256to511Octets: %llu\r\n", mibCounters->pkts256to511Octets[DEVNUM][port]);
++        printf("pkts512to1023Octets: %llu\r\n", mibCounters->pkts512to1023Octets[DEVNUM][port]);
++        printf("pkts1024tomaxOoctets: %llu\r\n", mibCounters->pkts1024tomaxOoctets[DEVNUM][port]);
++        printf("pkts1024to1518Octets: %llu\r\n", mibCounters->pkts1024to1518Octets[DEVNUM][port]);
++        printf("pkts1519toMaxOctets: %llu\r\n", mibCounters->pkts1519toMaxOctets[DEVNUM][port]);
++        printf("badPktsRcv: %llu\r\n", mibCounters->badPktsRcv[DEVNUM][port]);
++        printf("badCrc: %llu\r\n", mibCounters->badCrc[DEVNUM][port]);
++*/
++    }
++
++    /* QSFP */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Skip show QSFP counters. \n");
++        /*return GT_FAIL;*/
++    }
++    else
++    {
++        for (index = 1 ; index <= array_index ; index++)
++        {
++            cpssOsMemSet(&portmaccountersetarrayptr, 0, sizeof(portmaccountersetarrayptr));
++            rv = cpssDxChPortMacCountersOnPortGet(DEVNUM, work_ports[index], &portmaccountersetarrayptr);
++            if (rv != GT_OK)
++            {
++                printf(" [MFG] error occur(%d)\n", __LINE__);
++                return rv;
++            }
++
++            mibCounters->per_port_send_packet[DEVNUM][work_ports[index]] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++            mibCounters->per_port_recv_packet[DEVNUM][work_ports[index]] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++            mibCounters->goodOctetsRcv[DEVNUM][work_ports[index]] = ((unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[0];
++            mibCounters->goodOctetsSent[DEVNUM][work_ports[index]] = ((unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[0];
++            mibCounters->ucPktsRcv[DEVNUM][work_ports[index]] = ((unsigned long long int)portmaccountersetarrayptr.ucPktsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.ucPktsRcv.l[0];
++            mibCounters->ucPktsSent[DEVNUM][work_ports[index]] = ((unsigned long long int)portmaccountersetarrayptr.ucPktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.ucPktsSent.l[0];
++            mibCounters->mcPktsSent[DEVNUM][work_ports[index]] = ((unsigned long long int)portmaccountersetarrayptr.mcPktsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.mcPktsSent.l[0];
++            mibCounters->mcPktsRcv[DEVNUM][work_ports[index]] = ((unsigned long long int)portmaccountersetarrayptr.mcPktsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.mcPktsRcv.l[0];
++            mibCounters->pkts64Octets[DEVNUM][work_ports[index]] = ((unsigned long long int)portmaccountersetarrayptr.pkts64Octets.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.pkts64Octets.l[0];
++
++            printf("----------------------------------- port %d -------------------------------------\r\n", work_ports[index]);
++            printf("per_port_send_packet: %llu\r\n", mibCounters->per_port_send_packet[DEVNUM][work_ports[index]]);
++            printf("per_port_recv_packet: %llu\r\n", mibCounters->per_port_recv_packet[DEVNUM][work_ports[index]]);
++            printf("goodOctetsRcv: %llu\r\n", mibCounters->goodOctetsRcv[DEVNUM][work_ports[index]]);
++            printf("goodOctetsSent: %llu\r\n", mibCounters->goodOctetsSent[DEVNUM][work_ports[index]]);
++            printf("ucPktsRcv: %llu\r\n", mibCounters->ucPktsRcv[DEVNUM][work_ports[index]]);
++            printf("ucPktsSent: %llu\r\n", mibCounters->ucPktsSent[DEVNUM][work_ports[index]]);
++            printf("mcPktsSent: %llu\r\n", mibCounters->mcPktsSent[DEVNUM][work_ports[index]]);
++            printf("mcPktsRcv: %llu\r\n", mibCounters->mcPktsRcv[DEVNUM][work_ports[index]]);
++            printf("pkts64Octets: %llu\r\n", mibCounters->pkts64Octets[DEVNUM][work_ports[index]]);
++        }
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Clear_Counters(void)
++{
++    GT_STATUS rc;
++    GT_U64 counter;
++    int port, i, rv_qsfp_speed, index;
++
++    /* SFP */
++    for(port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        rc = cpssDxChPortMacCountersClearOnReadSet(DEVNUM, port, GT_TRUE);
++        if (rc != GT_OK)
++        {
++            printf(" [MFG] error occur at line (%d) port %d\n", __LINE__, port);
++            return rc;
++        }
++
++        for (i = CPSS_GOOD_OCTETS_RCV_E; i < CPSS_LAST_MAC_COUNTER_NUM_E; i++)
++        {
++            rc = cpssDxChMacCounterGet(DEVNUM, port, i, &counter);
++            usleep(1000);
++        }
++
++        rc = cpssDxChPortMacCountersClearOnReadSet(DEVNUM, port, GT_FALSE);
++        if (rc != GT_OK)
++        {
++            printf(" [MFG] error occur at line (%d) port %d\n", __LINE__, port);
++            return rc;
++        }
++    }
++
++    /* QSFP */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Skip clean QSFP counters. \n");
++        return GT_FAIL;
++    }
++    for (index = 1 ; index <= array_index ; index++)
++    {
++        rc = cpssDxChPortMacCountersClearOnReadSet(DEVNUM, work_ports[index], GT_TRUE);
++        if (rc != GT_OK)
++        {
++            printf(" [MFG] error occur at line (%d) port %d\n", __LINE__, work_ports[index]);
++            return rc;
++        }
++
++        for (i = CPSS_GOOD_OCTETS_RCV_E; i < CPSS_LAST_MAC_COUNTER_NUM_E; i++)
++        {
++            rc = cpssDxChMacCounterGet(DEVNUM, work_ports[index], i, &counter);
++            usleep(1000);
++        }
++
++        rc = cpssDxChPortMacCountersClearOnReadSet(DEVNUM, work_ports[index], GT_FALSE);
++        if (rc != GT_OK)
++        {
++            printf(" [MFG] error occur at line (%d) port %d\n", __LINE__, work_ports[index]);
++            return rc;
++        }
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Check_Counters(int port, GT_U32 packet_count, char * output_file)
++{
++    CPSS_PORT_MAC_COUNTER_SET_STC   portmaccountersetarrayptr;
++    struct mib_counter *mibCounters= malloc(sizeof(struct mib_counter));
++    GT_STATUS rv;
++    GT_STATUS check_packet_result = GT_OK , traffic_result = GT_OK;
++
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    memset(mibCounters, 0, sizeof(mibCounters));
++
++    cpssOsMemSet(&portmaccountersetarrayptr, 0, sizeof(portmaccountersetarrayptr));
++    rv = cpssDxChPortMacCountersOnPortGet(DEVNUM, port, &portmaccountersetarrayptr);
++    if (rv != GT_OK)
++    {
++        printf(" [MFG] error occur(%d)\n", __LINE__);
++        return rv;
++    }
++
++    mibCounters->per_port_send_packet[DEVNUM][port] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++    mibCounters->per_port_recv_packet[DEVNUM][port] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++#if 0
++    if (packet_count == 0)    /* means burn-in */
++    {
++        mibCounters->per_port_send_packet[DEVNUM][port+1] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsSent.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++        mibCounters->per_port_recv_packet[DEVNUM][port+1] = (((unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[1] << 32) + (unsigned long long int)portmaccountersetarrayptr.goodOctetsRcv.l[0])/COUNTER_PKT_LENGTH_FOR_PER_PORT;
++    }
++#endif
++
++    if (mibCounters->per_port_send_packet[DEVNUM][port] >= mibCounters->per_port_recv_packet[DEVNUM][port])
++        mibCounters->per_port_lose_packet[DEVNUM][port] = mibCounters->per_port_send_packet[DEVNUM][port] - mibCounters->per_port_recv_packet[DEVNUM][port];
++    else
++        check_packet_result = GT_FAIL;
++
++    /* console output */
++    printf(" PORT %d \t SEND PACK: %llu\t RECV PACK: %llu\t LOSE PACK: %llu \n", port,
++           mibCounters->per_port_send_packet[DEVNUM][port],
++           mibCounters->per_port_recv_packet[DEVNUM][port],
++           mibCounters->per_port_lose_packet[DEVNUM][port]);
++
++    /* Save to file log */
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo \"    PORT %d\t SEND PACK: %llu\t RECV PACK: %llu\t LOSE PACK: %llu\" >> %s",
++           port,
++           mibCounters->per_port_send_packet[DEVNUM][port],
++           mibCounters->per_port_recv_packet[DEVNUM][port],
++           mibCounters->per_port_lose_packet[DEVNUM][port],
++           output_file);
++    rv_s = system(cmd_buf);
++
++    /* Check counter met condition or not to decide traffic pass or fail */
++    if ( (mibCounters->per_port_lose_packet[DEVNUM][port] > 0) ||
++        (mibCounters->per_port_send_packet[DEVNUM][port] == 0) || (mibCounters->per_port_recv_packet[DEVNUM][port] == 0) ||
++        ((packet_count != 0) && (mibCounters->per_port_recv_packet[DEVNUM][port] != packet_count)) || (check_packet_result == GT_FAIL))
++    {
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        sprintf(cmd_buf, "echo \" Port %d TRAFFIC TEST RESULT: FAIL\" >> %s", port, output_file);
++        rv_s = system(cmd_buf);
++        traffic_result = GT_FAIL;
++    }
++    else
++    {
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        sprintf(cmd_buf, "echo \" Port %d TRAFFIC TEST RESULT: PASS\" >> %s", port, output_file);
++        rv_s = system(cmd_buf);
++    }
++
++    return traffic_result;
++}
++
++GT_STATUS Check_BurnIn_Counters(char * output_file)
++{
++    int port, index, rv_qsfp_speed, fail_count = 0;
++    GT_STATUS traffic_result, rv = GT_OK;
++
++    /* SFP */
++    for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        traffic_result = Check_Counters(port, 0, output_file);
++        if (traffic_result)
++            fail_count += 1;
++    }
++    /* QSFP */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Skip check QSFP counters. \n");
++        /*return GT_FAIL;*/
++    }
++    else
++    {
++        for (index = 1 ; index <= array_index ; index++)
++        {
++            traffic_result = Check_Counters(work_ports[index], 0, output_file);
++            if (traffic_result)
++                fail_count += 1;
++        }
++    }
++
++    /* Traffic final result shown */
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    if (fail_count > 0)
++    {
++        printf("\nPACKET TEST RESULT: FAIL\n");
++        sprintf(cmd_buf, "echo \"PACKET TEST RESULT: FAIL\" >> %s", output_file);
++        rv = GT_FAIL;
++    }
++    else
++    {
++        printf("\nPACKET TEST RESULT: PASS\n");
++        sprintf(cmd_buf, "echo \"PACKET TEST RESULT: PASS\" >> %s", output_file);
++        rv = GT_OK;
++    }
++    rv_s = system(cmd_buf);
++    return rv;
++}
++
++GT_STATUS Check_Pretest_Counters(GT_U32 packet_count, char * output_file)
++{
++    CPSS_PORT_MAC_COUNTER_SET_STC   portmaccountersetarrayptr;
++    GT_STATUS rv;
++    GT_STATUS traffic_result = GT_OK;
++    int port, index, rv_qsfp_speed, fail_count = 0;
++
++    /* SFP */
++    for (port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        traffic_result = Check_Counters(port, packet_count, output_file);
++        if (traffic_result)
++            fail_count += 1;
++    }
++
++    /* QSFP */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Skip check QSFP counters. \n");
++        /*return GT_FAIL;*/
++    }
++    else
++    {
++        for (index = 1 ; index <= array_index ; index++)
++        {
++            traffic_result = Check_Counters(work_ports[index], packet_count, output_file);
++            if (traffic_result)
++                fail_count += 1;
++        }
++    }
++
++    /* Traffic final result shown */
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    if (fail_count > 0)
++    {
++        printf("\n [MFG] TOTAL TRAFFIC TEST RESULT: FAIL\n");
++        sprintf(cmd_buf, "echo \" [MFG] TOTAL TRAFFIC TEST RESULT: FAIL\" >> %s", output_file);
++        rv = GT_FAIL;
++    }
++    else
++    {
++        printf("\n [MFG] TOTAL TRAFFIC TEST RESULT: PASS\n");
++        sprintf(cmd_buf, "echo \" [MFG] TOTAL TRAFFIC TEST RESULT: PASS\" >> %s", output_file);
++        rv = GT_OK;
++    }
++    rv_s = system(cmd_buf);
++
++    return rv;
++}
++
++GT_STATUS Check_Link_Status(char * output_file)
++{
++    GT_STATUS rc, port_linkdown = GT_FALSE;
++    GT_BOOL linkstatus;
++    int port, index;
++    int rv_qsfp_speed;
++
++    printf(" [MFG] Check ports link status ...\n\n");
++
++    /* SFP */
++    for(port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        rc = cpssDxChPortLinkStatusGet(DEVNUM, port, &linkstatus);
++        if (rc)
++            printf(" [MFG] Error occure during getting Port %d link status\n", port);
++
++        if (linkstatus == GT_FALSE)
++        {
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "echo \" [MFG] Port %d is link down.\" >> %s", port, output_file);
++            rv_s = system(cmd_buf);
++
++            printf(" [MFG] Port %d is link down.\n", port);
++            port_linkdown = GT_TRUE;
++        }
++    }
++
++    /* QSFP */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail ... Skip QSFP port link status check \n");
++        return GT_FAIL;
++    }
++    for (index = 1 ; index <= array_index ; index++)
++    {
++        rc = cpssDxChPortLinkStatusGet(DEVNUM, work_ports[index], &linkstatus);
++        if (rc)
++            printf(" [MFG] Error occure during getting Port %d link status\n", work_ports[index]);
++
++        if (linkstatus == GT_FALSE)
++        {
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "echo \" [MFG] Port %d is link down.\" >> %s", work_ports[index], output_file);
++            rv_s = system(cmd_buf);
++
++            printf(" [MFG] Port %d is link down.\n", work_ports[index]);
++            port_linkdown = GT_TRUE;
++        }
++    }
++
++    return port_linkdown;
++}
++
++/* VLAN was set before this function called, in Pre_Config_Check_And_Set() */
++GT_STATUS Do_PreTest(GT_U32 packet_count)
++{
++    GT_STATUS rc = GT_OK;
++    GT_U32 round, port;
++#if 0
++    int rv_qsfp_speed, index;
++#endif
++
++    printf(" [MFG] Start runnung pre-test ...\n\n");
++
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo \" --------------------------- \" >> %s", FILE_PRETEST_TEMP);
++    rv_s = system(cmd_buf);
++    sprintf(cmd_buf, "date >> %s", FILE_PRETEST_TEMP);
++    rv_s = system(cmd_buf);
++
++    /* Check Link status first */
++    rc = Check_Link_Status(FILE_PRETEST_TEMP);
++    if (rc == GT_TRUE)
++    {
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        sprintf(cmd_buf, "echo \" [MFG] Pre-test Result : FAIL\" >> %s", FILE_PRETEST_TEMP);
++        rv_s = system(cmd_buf);
++
++        printf(" [MFG] Some Ports are link down ... will skip traffic and exist pre-test function ...\n");
++        printf("\n [MFG] Pre-test Result : FAIL\n");
++        return GT_FAIL;
++    }
++
++    /* Set VLAN per port, prevent forget to set previously. */
++    Vlan_Mode_Set(3);
++
++    /*Close MAC not learned event*/
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_MAC_NA_NOT_LEARNED_E, CPSS_EVENT_MASK_E);
++
++    /* Disable TX DMA and other interrups to avoid interrupts influence on test results.
++        These interrupts are not used for TX from CPU in synch mode. */
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_TX_END_E, CPSS_EVENT_MASK_E);
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_TX_ERR_QUEUE_E, CPSS_EVENT_MASK_E);
++
++    /* Clean counter first */
++    Clear_Counters();
++
++    /* Start send packet */
++    printf(" [MFG] Start traffic test ...\n\n");
++    /* Generate 100 pkts per cycle to each ports. */
++    for (round = 0 ; round < (packet_count / 100) ; round ++)
++    {
++        /* SFP */
++        for(port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++        {
++            /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port); */    /* DEBUG */
++            Send_Packet_From_CPU(port, 100, 1);
++        }
++    #if 0
++        /* QSFP */
++        rv_qsfp_speed = Read_QSFP_Speed_Note();
++        if ( rv_qsfp_speed <= 0)
++        {
++            printf(" [MFG] Get QSFP speed fail ... Skip QSFP port traffic test \n");
++            return GT_FAIL;
++        }
++        for (index = 1 ; index <= array_index ; index++)
++        {
++            /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", work_ports[index]);    DEBUG */
++            Send_Packet_From_CPU(work_ports[index], 100, 1);
++        }
++    #endif
++        /* usleep(10000); */
++    }
++
++    /* Then generate rest (less 100) pkts to each ports. */
++    for(port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
++    {
++        /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port);    DEBUG */
++        Send_Packet_From_CPU(port, packet_count % 100, 1);
++    }
++
++    sleep(3);
++
++    /* Check counter */
++    printf(" [MFG] Start checking counters ...\n\n");
++    rc = Check_Pretest_Counters(packet_count, FILE_PRETEST_TEMP);
++
++    /* Show final result */
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    if (rc)
++    {
++        sprintf(cmd_buf, "echo \" [MFG] Pre-test result : FAIL\" >> %s", FILE_PRETEST_TEMP);
++        printf("\n [MFG] Pre-test result : FAIL\n");
++    }
++    else
++    {
++        sprintf(cmd_buf, "echo \" [MFG] Pre-test result : PASS\" >> %s", FILE_PRETEST_TEMP);
++        printf("\n [MFG] Pre-test result : PASS\n");
++    }
++    rv_s = system(cmd_buf);
++
++    return rc;
++}
++
++GT_STATUS Do_BurnIn(GT_U32 time_seconds)
++{
++    int port;
++    int i, rv_qsfp_speed;
++    GT_STATUS rc = GT_OK;
++
++    printf("------------------------------------------------\n");
++
++    /* Check Link status first */
++    rc = Check_Link_Status(FILE_BURNIN_TEMP);
++    if (rc == GT_TRUE)
++    {
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        sprintf(cmd_buf, "echo \"LINK STATUS TEST RESULT: FAIL\" >> %s", FILE_BURNIN_TEMP);
++        rv_s = system(cmd_buf);
++
++        printf(" [MFG] Link TEST RESULT : FAIL\n\n");
++        #if 0
++        printf(" [MFG] Some Ports are link down ... will skip traffic and exist burn-in function ...\n");
++        return GT_FAIL;
++        #endif
++    }
++    else {
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        sprintf(cmd_buf, "echo \"LINK STATUS TEST RESULT: PASS\" >> %s", FILE_BURNIN_TEMP);
++        rv_s = system(cmd_buf);
++
++        printf(" [MFG] Link TEST RESULT : PASS\n\n");
++    }
++
++    /* Get QSFP port info for later usage */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail !!! \n");
++        /*return GT_FAIL;*/
++    }
++
++    /* Start Traffic test */
++    /* Set VLAN per 2 port, prevent forget to set previously. */
++    Vlan_Mode_Set(4);
++
++    /*Close MAC not learned event*/
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_MAC_NA_NOT_LEARNED_E, CPSS_EVENT_MASK_E);
++
++    /* Disable TX DMA and other interrups to avoid interrupts influence on test results.
++        These interrupts are not used for TX from CPU in synch mode. */
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_TX_END_E, CPSS_EVENT_MASK_E);
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_TX_ERR_QUEUE_E, CPSS_EVENT_MASK_E);
++
++    /* Clean counter first */
++    Clear_Counters();
++
++    /* Start send packet */
++    printf("\n [MFG] Start traffic test ...\n\n");
++    #if 1
++    for(port = SFP_MAC_PORT_START ; port < SFP_MAC_PORT_END ; port++)
++    {
++        /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port);    DEBUG */
++        if (port == (SFP_MAC_PORT_END - 1))
++            Send_Packet_From_CPU(port, 10, 1);    /* go 5 port-group (1 SFP pair & 4 QSFP pair) and only sigle way , so need to * 10 pkt amount. */
++        else
++            Send_Packet_From_CPU(port, 1, 1);
++    }
++    #else
++    for(port = SFP_MAC_PORT_END ; port >= SFP_MAC_PORT_START ; port--)
++    {
++        /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port);    DEBUG */
++        if (port == SFP_MAC_PORT_END)
++        {
++            Send_Packet_From_CPU(port, 8, 1);    /* go 4 port-group (4 QSFP pair) and only sigle way , so need to * 4*2=8 pkt amount. */
++            sleep(1);
++        }
++        else if (port == (SFP_MAC_PORT_END - 1))
++        {
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[array_index], CPSS_DIRECTION_INGRESS_E, ( SFP_VLAN_PAIR + 1 + 1));    /* restore last QSFP pvid to first QSFP */
++            cpssDxChBrgVlanPortVidSet(DEVNUM, SFP_MAC_PORT_END, CPSS_DIRECTION_INGRESS_E, ( SFP_VLAN_PAIR + 1 ));              /* restore SFP-48 pvid to SFP47 */
++            Send_Packet_From_CPU(port, 1, 1);
++        }
++        else
++            Send_Packet_From_CPU(port, 1, 1);
++    }
++    #endif
++
++    sleep(time_seconds);
++
++    /* Change PVID to unsage vlan to stop traffic */
++    /* SFP ports */
++    for (port = SFP_MAC_PORT_START; port <= SFP_MAC_PORT_END; port++)
++    {
++        cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, 1000);
++    }
++
++    /* QSFP ports */
++    for (i = 1 ; i <= array_index ; i++)
++    {
++        cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, 1000);
++    }
++
++    sleep(3);
++
++    /* Check counter */
++    printf(" [MFG] Start checking counters ...\n\n");
++    rc = Check_BurnIn_Counters(FILE_BURNIN_TEMP);
++
++    /* Show final result */
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    if (rc)
++    {
++        sprintf(cmd_buf, "echo \" [MFG] Burn-in result : FAIL\" >> %s", FILE_BURNIN_TEMP);
++        printf("\n [MFG] Burn-in result : FAIL\n");
++    }
++    else
++    {
++        sprintf(cmd_buf, "echo \" [MFG] Burn-in result : PASS\" >> %s", FILE_BURNIN_TEMP);
++        printf("\n [MFG] Burn-in result : PASS\n");
++    }
++    rv_s = system(cmd_buf);
++    printf("------------------------------------------------\n");
++
++    return GT_OK;
++}
++
++void PT_Pretest_Request(int qsfp, int sfp, int pkt)
++{
++    int rv_if = 0;
++    int qsfp_speed_set, sfp_speed_set;
++
++    /* Restore VLAN to default, for if QSFP ports' speed changed. */
++    Vlan_Mode_Set(0);
++
++    /* Read SFP interface so as to set new speed and loading Tx configuration value. */
++    rv_if = 4;   /* Read_SFP_Interface_Note(); */
++    if ( rv_if < 0)
++    {
++        printf(" [MFG] Get Interface type fail ... re SFP Tx-parameters setting : FAIL\n");
++    }
++    if (sfp == 10)
++        sfp_speed_set = MFG_PORT_SPEED_10G;
++    else /* if(sfp == 25) */
++        sfp_speed_set = MFG_PORT_SPEED_25G;
++    SFP_Speed_Set(sfp_speed_set, rv_if);
++    usleep(ACTION_DELAY);
++
++    /* Read SFP interface so as to set new speed and loading Tx configuration value. */
++    rv_if = 4;   /* Read_QSFP_Interface_Note(); */
++    if ( rv_if < 0)
++    {
++        printf(" [MFG] Get Interface type fail ... re QSFP Tx-parameters setting : FAIL\n");
++    }
++    if (qsfp == 10)
++        qsfp_speed_set = MFG_PORT_SPEED_10G;
++    else if(qsfp == 25)
++        qsfp_speed_set = MFG_PORT_SPEED_25G;
++    else if(qsfp == 40)
++        qsfp_speed_set = MFG_PORT_SPEED_40G;
++    else if(qsfp == 50)
++        qsfp_speed_set = MFG_PORT_SPEED_50G;
++    else /* if(qsfp == 100) */
++        qsfp_speed_set = MFG_PORT_SPEED_100G;
++    QSFP_Speed_Set(qsfp_speed_set, rv_if);
++    usleep(ACTION_DELAY);
++
++    sleep(5);    /* Add delay to make DUT stable */
++
++    Do_PreTest(pkt);
++}
++
++GT_STATUS Do_Traffic_Flooding(GT_U32 time_seconds)
++{
++    int port;
++    int i, rv_qsfp_speed;
++    GT_STATUS rc = GT_OK;
++
++    printf("------------------------------------------------\n");
++
++    /* Check Link status first */
++    rc = Check_Link_Status("/home/root/testLog/MAC/temp_taffic_flodding_log.log");    /* the log is useless */
++    if (rc == GT_TRUE)
++    {
++        printf(" [MFG] Some Ports are link down ...\n");
++    }
++
++    /* Get QSFP port info for later usage */
++    rv_qsfp_speed = Read_QSFP_Speed_Note();
++    if ( rv_qsfp_speed <= 0)
++    {
++        printf(" [MFG] Get QSFP speed fail !!! \n");
++        /*return GT_FAIL;*/
++    }
++
++    /* Start Traffic test */
++
++    /*Close MAC not learned event*/
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_MAC_NA_NOT_LEARNED_E, CPSS_EVENT_MASK_E);
++
++    /* Disable TX DMA and other interrups to avoid interrupts influence on test results.
++        These interrupts are not used for TX from CPU in synch mode. */
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_TX_END_E, CPSS_EVENT_MASK_E);
++    cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_TX_ERR_QUEUE_E, CPSS_EVENT_MASK_E);
++
++    /* Clean counter first */
++    Clear_Counters();
++
++    /* Start send packet */
++    printf("\n [MFG] Start traffic test ...\n\n");
++    Send_Packet_From_CPU(48, 1, 2);
++    Send_Packet_From_CPU(1, 1, 2);
++
++    if (time_seconds != 0)
++    {
++        sleep(time_seconds);
++
++        /* Change PVID to unstage vlan to stop traffic */
++        /* SFP ports */
++        for (port = SFP_MAC_PORT_START; port <= SFP_MAC_PORT_END; port++)
++        {
++            cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, 1000);
++        }
++
++        /* QSFP ports */
++        for (i = 1 ; i <= array_index ; i++)
++        {
++            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[i], CPSS_DIRECTION_INGRESS_E, 1000);
++        }
++    }
++
++    sleep(3);
++
++    return GT_OK;
++}
++
++void Self_Function_Test()
++{
++    Vlan_Mode_Set(2);
++    printf("   # test : traffic start \n");
++    while (1)
++    {
++        Send_Packet_From_CPU(1, 1, 1);
++        /* usleep(1000); */    /* add but become no blink @@ */
++    }
++}
++
++GT_STATUS MFG_Futher_Action(void)
++{
++    sleep(5);    /* Add delay to make DUT initialized finish and more stable */
++
++    if (current_action_mode == MODE_PRETEST)
++    {
++        Do_PreTest(traffic_request_count);
++        sleep(2);
++        return GT_OK;
++    }
++    else if (current_action_mode == MODE_BURNIN)
++    {
++        Do_BurnIn(burn_in_time);
++        sleep(5);
++        #if 0
++        return GT_FAIL;
++        #else
++        rv_s = system("killall -9 appDemo");
++        return GT_OK;
++        #endif
++    }
++    else if (current_action_mode == MODE_AUTO_TRAFFIC_FLOODING)
++    {
++        Do_Traffic_Flooding(flooding_sec);
++        return GT_OK;
++    }
++    else
++        return GT_OK;
++}
++
++void Pre_Config_Check_And_Set(void)
++{
++    FILE *normal_param_file;
++    char normal_param[64];
++    FILE *burnin_param_file;
++    char burnin_param[64];
++    FILE *pretest_param_file;
++    char pretest_param[64];
++    int speed_sfp = 0, speed_qsfp = 0, interface_type = 0, vlan_mode = 0, an = 0, fec_mode = 0;
++    char linux_action[256]={0};
++
++    memset(linux_action, 0x0, sizeof(linux_action));
++
++    /* Parsing Config file if exist */
++    normal_param_file = fopen(FILE_NORMAL_PARAM, "r+");
++    if( normal_param_file != NULL )
++    {
++        printf("\r\n [ MFG - Gemini ] Parsing basic configure file ...\n");
++        current_action_mode = MODE_NORMAL;
++        memset(normal_param, 0x0, sizeof(normal_param));
++        while(!feof(normal_param_file))
++        {
++            if(fgets(normal_param, 64, normal_param_file) != NULL)
++            {
++                if (0 != strstr(normal_param, "QSFP")) {
++                    strtok(normal_param, "=");
++                    speed_qsfp = atoi(strtok(NULL, "="));
++                    printf("   QSFP speed : %d\n", speed_qsfp);
++                } else if (0 != strstr(normal_param, "SFP")) {
++                    strtok(normal_param, "=");
++                    speed_sfp = atoi(strtok(NULL, "="));
++                    printf("   SFP speed : %d\n", speed_sfp);
++                } else if (0 != strstr(normal_param, "INTERFACE")) {
++                    strtok(normal_param, "=");
++                    interface_type = atoi(strtok(NULL, "="));
++                    printf("   interface : %d\n", interface_type);
++                } else if (0 != strstr(normal_param, "VLAN")) {
++                    strtok(normal_param, "=");
++                    vlan_mode = atoi(strtok(NULL, "="));
++                    printf("   vlan mode : %d\n", vlan_mode);
++                } else if (0 != strstr(normal_param, "FEC")) {
++                    strtok(normal_param, "=");
++                    fec_mode = atoi(strtok(NULL, "="));
++                    printf("   FEC mode : %d\n", fec_mode);
++                } else if (0 != strstr(normal_param, "AN")) {
++                    strtok(normal_param, "=");
++                    an = atoi(strtok(NULL, "="));
++                    printf("   auto-negotiation : %d\n", an);
++                } else if (0 != strstr(normal_param, "FLOODING")) {
++                    strtok(normal_param, "=");
++                    flooding_sec = atoi(strtok(NULL, "="));
++                    if (flooding_sec >= 0)
++                    {
++                        current_action_mode = MODE_AUTO_TRAFFIC_FLOODING;
++                        printf("   flooding second : %d\n", flooding_sec);
++                    }
++                }
++            }
++        }
++
++        fclose(normal_param_file);
++
++        snprintf(linux_action, sizeof(linux_action), "rm %s", FILE_NORMAL_PARAM);
++        rv_s = system(linux_action);
++    }
++    else
++    {
++        pretest_param_file = fopen(FILE_PRETEST_PARAM, "r+");
++        if( pretest_param_file != NULL )
++        {
++            printf("\r\n [ MFG - Gemini ] Parsing pre-test configure file ...\n");
++            current_action_mode = MODE_PRETEST;
++            memset(pretest_param, 0x0, sizeof(pretest_param));
++            while(!feof(pretest_param_file))
++            {
++                if(fgets(pretest_param, 64, pretest_param_file) != NULL)
++                {
++                    if (0 != strstr(pretest_param, "QSFP")) {
++                        strtok(pretest_param, "=");
++                        speed_qsfp = atoi(strtok(NULL, "="));
++                        printf("   QSFP speed : %d\n", speed_qsfp);
++                    } else if (0 != strstr(pretest_param, "SFP")) {
++                        strtok(pretest_param, "=");
++                        speed_sfp = atoi(strtok(NULL, "="));
++                        printf("   SFP speed : %d\n", speed_sfp);
++                    } else if (0 != strstr(pretest_param, "PKTCOUNT")) {
++                        strtok(pretest_param, "=");
++                        traffic_request_count = atoi(strtok(NULL, "="));
++                        printf("   packet count : %d\n", traffic_request_count);
++                    } else if (0 != strstr(pretest_param, "VLAN")) {
++                        strtok(pretest_param, "=");
++                        vlan_mode = atoi(strtok(NULL, "="));
++                        printf("   vlan mode : %d\n", vlan_mode);
++                    } else if (0 != strstr(normal_param, "INTERFACE")) {
++                        strtok(normal_param, "=");
++                        interface_type = atoi(strtok(NULL, "="));
++                        printf("   interface : %d\n", interface_type);
++                    }
++                }
++            }
++
++            fclose(pretest_param_file);
++
++            snprintf(linux_action, sizeof(linux_action), "rm %s", FILE_PRETEST_PARAM);
++            rv_s = system(linux_action);
++        }
++        else    /* try access burn-in file */
++        {
++            burnin_param_file = fopen(FILE_BURNIN_PARAM, "r+");
++            if( burnin_param_file == NULL )
++            {
++                /* if come this condition, mean 3 files are not exist ... so use default setting */
++                printf("\r\n [ MFG - Gemini ] No configuration files exist ... will use default setting\n");
++                current_action_mode = MODE_NORMAL;
++                speed_sfp = 2;     /* SFP 25G */
++                speed_qsfp = 5;    /* QSFP 100G */
++                interface_type = 2;/* Fiber */
++            }
++            else
++            {
++                printf("\r\n [ MFG - Gemini ] Parsing burn-in configure file ...\n");
++                current_action_mode = MODE_BURNIN;
++                speed_sfp = 2;     /* SFP 25G */
++                speed_qsfp = 5;    /* QSFP 100G */
++                interface_type = 4;/* lbm */
++                vlan_mode = 4;     /* 2-port VLAN for burn-in */
++                memset(burnin_param, 0x0, sizeof(burnin_param));
++                if (fgets(burnin_param, 64, burnin_param_file) != NULL)
++                {
++                    if (0 != strstr(burnin_param, "TIME")) {
++                        strtok(burnin_param, "=");
++                        burn_in_time = atoi(strtok(NULL, "="));
++                        printf(" [MFG] burn-in parameter %d second\n", burn_in_time);
++                    } else if (0 != strstr(burnin_param, "INTERFACE")) {
++                        strtok(burnin_param, "=");
++                        interface_type = atoi(strtok(NULL, "="));
++                        printf(" [MFG] interface : %d\n", interface_type);
++                    }
++                }
++                else
++                    printf(" [MFG] error occured during get parameter\n");
++
++                fclose(burnin_param_file);
++                snprintf(linux_action, sizeof(linux_action), "rm %s", FILE_BURNIN_PARAM);
++                rv_s = system(linux_action);
++                sleep(1);
++            }
++        }
++    }
++
++    /* Start to configure */
++    /* 0. Disable all ports because there might some weird packet receiving */
++    SFP_Speed_Set(MFG_PORT_SPEED_N, 0);
++    usleep(ACTION_DELAY);
++    QSFP_Speed_Set(MFG_PORT_SPEED_N, 0);
++    usleep(ACTION_DELAY);
++    sleep(1);    /* add to make port disable longer try to make rx-tune smoothly */
++    
++    /* 1.QSFP speed configure, Tx-parameters setting & Rx auto-tune */
++    QSFP_Speed_Set(speed_qsfp, interface_type);
++
++    /* 2.SFP Rx auto-tune & Tx-parameters setting */
++    SFP_Speed_Set(speed_sfp, interface_type);
++
++    /* 3.VLAN */
++    cpssOsMemSet(&def_vlan_bak, 0, sizeof(struct default_vlan_info));
++    Backup_Default_Vlan();
++    Vlan_Mode_Set(vlan_mode);
++
++    /* 4.FEC */
++    if (fec_mode != 0)
++    {
++        if (fec_mode == 3)                          /* mix - SFP:FC-FEC ; QSFP : RC-FEC */
++        {
++            Ports_FEC_Set(1, 1);                    /* SFP  use FC-FEC */
++            Ports_FEC_Set(2, 2);                    /* QSFP use RS-FEC */
++        }
++        else
++        {
++            /* SFP */
++            Ports_FEC_Set(1, fec_mode);
++
++            /* QSFP */
++            if (speed_qsfp == 5 && fec_mode == 1)   /* QSFP , only skip when (100G + FC-FEC) */
++                printf(" [MFG] FC-FEC is not support for 100G, so skip 100G's setting.\n");
++            else
++                Ports_FEC_Set(2, fec_mode);
++        }
++    }
++
++    /* Clean counter, where might be some weird packet transmit before */
++    Clear_Counters();
++}
++
++GT_STATUS MFG_Init(void)
++{
++    int rv;
++    /* 1. Some Parameter initialize */
++    printf("\r\n [ MFG - Gemini ] Parameter Init ...\n");
++    rv = appDemoDbEntryAdd("numOfTiles", 2);
++    printf("  Entry Add 'numOfTiles' Done(%d)\n", rv);
++
++    rv = appDemoDbEntryAdd("numberPhysicalPorts", 128);
++    printf("  Entry Add 'numberPhysicalPorts' Done(%d)\n", rv);
++
++    rv = appDemoDbEntryAdd("boardType", 3);
++    printf("  Entry Add 'boardType' Done(%d)\n", rv);
++
++    rv = appDemoDbEntryAdd("use_falcon_6_4_cpu_ports_group1", 0);
++    printf("  Entry Add 'use_falcon_6_4_cpu_ports_group1' Done(%d)\n", rv);
++
++    rv = appDemoDbEntryAdd("use_falcon_6_4_cpu_ports_group2", 1);
++    printf("  Entry Add 'use_falcon_6_4_cpu_ports_group2' Done(%d)\n", rv);
++
++    /* 2. Initialize MAC */
++    #if 0
++        printf("\r\n [ MFG - Gemini ] System Init with Marvel AP mode ...\n");
++    #else
++        printf("\r\n [ MFG - Gemini ] System Init ...\n");
++        rv = cpssInitSystem(35, 8, 0);
++    #endif
++    usleep(ACTION_DELAY);
++    if (rv)
++        return rv;
++    else
++        printf("  System Inititailize Done(%d)\n", rv);
++
++    /* 3. By reading external file to decide ports speed init, Tx-parameters setting, and then do Rx auto-tune */
++    Pre_Config_Check_And_Set();
++
++    return GT_OK;
++}
+diff --git a/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c b/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c
+index 5d92915a..71c79fc9 100644
+--- a/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c
++++ b/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c
+@@ -59,6 +59,15 @@ GT_U32 luaModeNum = 0;
+                     "               LUA CLI shell ready\n"     \
+                     "***************************************************\n\n"
+ 
++/* PEGA Jenny Add */
++#define PEGA_BANNER_INIT_OK "\n***************************************************\n"     \
++                            "             PEGATRON MFG Initial Ready\n"     \
++                            "***************************************************\n\n"
++#define PEGA_BANNER_INIT_FAIL "\n***************************************************\n"     \
++                            "             PEGATRON MFG Initial FAIL\n"     \
++                            "***************************************************\n\n"
++/* Add End*/
++
+ #define CLI_PROMPT  ">"
+ #define CLI_READLINE_FLAG_HISTORY       1
+ #define CLI_READLINE_FLAG_COMPLETION    2
+@@ -93,6 +102,8 @@ GT_U32 luaModeNum = 0;
+ #define CLI_HISTORY_LEN             1000
+ #define CLI_HISTORY_LEN_OVERHEAD    200
+ 
++extern void mfg_thread(void); /* PEGA Jenny Add */
++
+ typedef void* (*LUACLI_MALLOC_T)(int size);
+ LUA_CLI_MALLOC_STC *memMgr;
+ 
+@@ -1178,6 +1189,34 @@ GT_STATUS luaCLIEngineEventInit
+ #ifdef CLI_BANNER
+         IOStream->writeLine(IOStream, CLI_BANNER);
+ #endif
++
++        /* Pega Jenny Add */
++#if 1
++        int rc = 0;
++        rc = MFG_Init();
++        if (rc == 0) {
++            IOStream->writeLine(IOStream, PEGA_BANNER_INIT_OK);
++        } else {
++            IOStream->writeLine(IOStream, PEGA_BANNER_INIT_FAIL);
++        }
++        rc = MFG_Futher_Action();
++        if (rc == GT_FAIL)
++        {
++    #if 1
++            /* ref :: ln.1384 :: closeSessionLabel */
++            /* exit calling function */
++            lua_getglobal(*L, "cmdLuaCLI_atexit");
++            if (lua_isfunction(*L, -1))
++            {
++                lua_call(*L, 0, 0);
++            }
++            lua_close(*L);
++            return GT_FAIL; /* close session */
++    #endif
++        }
++
++#endif
++        /* Add End */
+     }
+ 
+     *linePtr = (char*)memMgr->malloc(CLI_MAX_LINE_LEN);
+-- 
+2.28.0
+

@@ -1,0 +1,16 @@
+THIS_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(ONL)/make/config.mk
+
+export ARCH := x86
+ifndef CPSS_TARGET_DIR
+CPSS_TARGET_DIR := $(THIS_DIR)
+endif
+
+include ../../../config.mk
+
+CPSS_VERSION := CPSS_4.2_2020_07
+CPSS_VERSION_MAJOR := cpss_4.2
+CPSS_VERSION_SUFFIX := _014
+CPSS_BRANCH := $(CPSS_VERSION_MAJOR)
+
+include $(ONLBASE)/packages/platforms-closed/base/any/marvell/build.mk

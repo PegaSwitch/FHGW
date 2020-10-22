@@ -1,0 +1,165 @@
+From 4395fc8ba54a81d45ab839fbd93cc7e621a57e48 Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Mon, 6 Jul 2020 14:55:26 +0800
+Subject: [PATCH 4/9] 1. Add detect BMC existance, to pause sensor-monitor from
+ BMC, while front ports' LED changing. 2. Resume 4 QSFP ports serdes number
+ setting.
+
+---
+ .../src/appDemo/boardConfig/gtDbDxFalcon.c    | 32 +++++------
+ .../appDemo/entryPoints/linux/mfg_gemini.c    | 56 +++++++++++++++++--
+ 2 files changed, 68 insertions(+), 20 deletions(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c
+index 14866c3d..c6191c55 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxFalcon.c
+@@ -1803,14 +1803,14 @@ static FALCON_PORT_MAP_STC falcon_6_4_Pega_defaultMap[] =
+      {69            ,  1         ,   101     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+      {70            ,  1         ,   102     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+      {71            ,  1         ,   103     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+-     {72            ,  1         ,   104     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/* 20200609 Vivid ask to change from 108 to 104 */
+-     {73            ,  1         ,   105     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 109 to 105 */
+-     {74            ,  1         ,   106     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 110 to 106 */
+-     {75            ,  1         ,   107     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 111 to 107 */
+-     {76            ,  1         ,   108     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 104 to 108 */
+-     {77            ,  1         ,   109     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 105 to 109 */
+-     {78            ,  1         ,   110     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 106 to 110 */
+-     {79            ,  1         ,   111     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 107 to 111 */
++     {72            ,  1         ,   108     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {73            ,  1         ,   109     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {74            ,  1         ,   110     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {75            ,  1         ,   111     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {76            ,  1         ,   104     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {77            ,  1         ,   105     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {78            ,  1         ,   106     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {79            ,  1         ,   107     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+      {80            ,  1         ,   112     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+      {81            ,  1         ,   113     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+      {82            ,  1         ,   114     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+@@ -1819,14 +1819,14 @@ static FALCON_PORT_MAP_STC falcon_6_4_Pega_defaultMap[] =
+      {85            ,  1         ,   117     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+      {86            ,  1         ,   118     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+      {87            ,  1         ,   119     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+-     {88            ,  1         ,   120     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/* 20200609 Vivid ask to change from 124 to 120 */
+-     {89            ,  1         ,   121     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 125 to 121 */
+-     {90            ,  1         ,   122     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 126 to 122 */
+-     {91            ,  1         ,   123     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 127 to 123 */
+-     {92            ,  1         ,   124     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 120 to 124 */
+-     {93            ,  1         ,   125     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 121 to 125 */
+-     {94            ,  1         ,   126     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 122 to 126 */
+-     {95            ,  1         ,   127     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},/*                       change from 123 to 127 */
++     {88            ,  1         ,   124     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {89            ,  1         ,   125     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {90            ,  1         ,   126     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {91            ,  1         ,   127     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {92            ,  1         ,   120     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {93            ,  1         ,   121     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {94            ,  1         ,   122     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
++     {95            ,  1         ,   123     , CPSS_DXCH_PORT_MAPPING_TYPE_ETHERNET_MAC_E, IGNORE_DMA_STEP},
+ 
+ 
+     /* Marvell - vivid : check cpu DMA range in spec */ 
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+index 12fd176e..c39d8f2e 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+@@ -110,6 +110,8 @@ int traffic_request_count = 0, burn_in_time = 0, flooding_sec = 0;
+ int current_action_mode = 0;
+ int rv_s = -1;
+ 
++int bdx_bmc_exist=0;
++
+ enum{
+ MODE_NORMAL = 1,
+ MODE_PRETEST,
+@@ -334,10 +336,46 @@ int Read_SFP_Interface_Note ()
+ 
+ void I2C_Bus_Mutex_Check_And_Create()
+ {
+-    char cmd[64], buffer[64];
++    char cmd[64], buffer[64], cmd_long[128];
+     FILE *fp;
+     int i = 0;
+ 
++    /* Check BMC exist or not, to prevent I2C arbiter lock while access I2C if sensor-monitor doing */
++    if (bdx_bmc_exist == 1)
++    {
++        memset(cmd_long, 0x0, sizeof(cmd_long));
++        sprintf(cmd_long, "swallow_empty_line=$( { ipmitool raw 0x3c 0xed 0x0 ; } 2>&1 )");    /* temporary disable BMC sensor-monitor */
++        fp = popen(cmd_long, "w");
++        pclose(fp);
++    }
++    else    /* maybe first time boot-up, so still need to check BMC exist or not */
++    {
++        memset(cmd, 0x0, sizeof(cmd));
++        sprintf(cmd, "ls /dev/ | grep 'ipmi0'");
++        fp = popen(cmd, "r");
++        memset(buffer, 0x0, sizeof(buffer));
++        while(fgets(buffer, 64, fp) != NULL) {
++            i++;
++        }
++        if (i > 0)
++        {
++            pclose(fp);
++            /*printf(" [MFG Debug] BMC exist ! need pause BMC sensor-monitor first. \n");*/
++            bdx_bmc_exist=1;
++
++            memset(cmd_long, 0x0, sizeof(cmd_long));
++            sprintf(cmd_long, "swallow_empty_line=$( { ipmitool raw 0x3c 0xed 0x0 ; } 2>&1 )");    /* temporary disable BMC sensor-monitor */
++            fp = popen(cmd_long, "w");
++            pclose(fp);
++        }
++        else
++        {
++            pclose(fp);
++            /*printf(" [MFG Debug] BMC Not exist. \n");*/
++        }
++    }
++
++    /* Create I2C mutex node before check and get the I2C access right. */
+     memset(cmd, 0x0, sizeof(cmd));
+     sprintf(cmd, "ls /tmp/ | grep 'i2c-bus-mutex'");
+     fp = popen(cmd, "r");
+@@ -346,7 +384,7 @@ void I2C_Bus_Mutex_Check_And_Create()
+     while(fgets(buffer, 64, fp) != NULL) {
+         i++;
+     }
+-    if (i == 0)
++    if (i == 0)    /* no one in MFG using I2C bus */
+     {
+         pclose(fp);
+ 
+@@ -374,9 +412,19 @@ void I2C_Bus_Mutex_Check_And_Create()
+ 
+ void I2C_Bus_Mutex_Clean()
+ {
+-    char cmd[64];
++    char cmd[64], cmd_long[128];
+     FILE *fp;
+ 
++    if(bdx_bmc_exist == 1)
++    {
++        /*printf(" [MFG Debug] Resume BMC sensor monitor ... \n");*/
++
++        memset(cmd_long, 0x0, sizeof(cmd_long));
++        sprintf(cmd_long, "swallow_empty_line=$( { ipmitool raw 0x3c 0xed 0x1 ; } 2>&1 )");    /* resume BMC sensor-monitor */
++        fp = popen(cmd_long, "w");
++        pclose(fp);
++    }
++
+     memset(cmd, 0x0, sizeof(cmd));
+     sprintf(cmd, "rm /tmp/i2c-bus-mutex");
+     fp = popen(cmd, "w");
+@@ -2571,7 +2619,7 @@ void Pre_Config_Check_And_Set(void)
+     QSFP_Speed_Set(MFG_PORT_SPEED_N, 0);
+     usleep(ACTION_DELAY);
+     sleep(1);    /* add to make port disable longer try to make rx-tune smoothly */
+-    
++
+     /* 1.QSFP speed configure, Tx-parameters setting & Rx auto-tune */
+     QSFP_Speed_Set(speed_qsfp, interface_type);
+ 
+-- 
+2.28.0
+

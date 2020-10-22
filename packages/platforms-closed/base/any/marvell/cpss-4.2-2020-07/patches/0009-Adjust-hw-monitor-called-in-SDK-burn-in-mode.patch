@@ -1,0 +1,32 @@
+From fbbce5966031e07395723de2b16a770f8d121dde Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Wed, 16 Sep 2020 18:03:03 +0800
+Subject: [PATCH 9/9] Adjust hw-monitor called in SDK burn-in mode.
+
+---
+ .../src/appDemo/entryPoints/linux/mfg_gemini.c           | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+index 479d9b30..f667a6de 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+@@ -2788,6 +2788,15 @@ GT_STATUS MFG_Futher_Action(void)
+     }
+     else if (current_action_mode == MODE_BURNIN)
+     {
++        /* Run hw-monitor of diag-test Burn-in mode called */
++        printf("\n[Diag Msg] Run hw_monitor.sh -- Cycle %d \n\n", traffic_cycle);
++        memset(cmd_long, 0x0, sizeof(cmd_long));
++        sprintf(cmd_long, "source /home/root/mfg/mfg_sources/hw_monitor.sh 0 20 %d &", traffic_cycle);
++        fp = popen(cmd_long, "w");
++        pclose(fp);
++        sleep(1);
++        printf("\n");
++
+         Do_BurnIn(burn_in_time);
+         sleep(5);
+         #if 0
+-- 
+2.28.0
+

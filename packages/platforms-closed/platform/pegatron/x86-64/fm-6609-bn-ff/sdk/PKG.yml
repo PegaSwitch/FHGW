@@ -1,0 +1,1 @@
+!include $ONLBASE/packages/platforms-closed/base/any/marvell/cpss/APKG.yml ARCH=amd64 VENDOR=pegatron BASENAME=x86-64-pegatron-fm-6609-bn-ff KERNELS="onl-kernel-4.19-lts-x86-64-all:amd64" CPSS=cpss_4.2

@@ -1,0 +1,22 @@
+############################################################
+#
+# PKG template for all platform-closed module packages
+#
+############################################################
+prerequisites:
+  packages:
+    - $KERNELS
+
+packages:
+  - name: onl-platform-sdk-${BASENAME}
+    version: 1.0.0
+    arch: $ARCH
+    copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+    maintainer: support@bigswitch.com
+    support: opennetworklinux@googlegroups.com
+    summary: ONL Platform Modules Package for the ${BASENAME}
+
+    files:
+      - builds/jessie/cpss/compilation_root/${CPSS}/ia64_DX/appDemo: /root/
+
+    changelog: Changes

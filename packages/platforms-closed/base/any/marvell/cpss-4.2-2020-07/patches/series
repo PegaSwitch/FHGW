@@ -1,0 +1,9 @@
+0001-fix-cpss-build-error.patch
+0002-add-external-Linux-header-path.patch
+0003-1.-Add-Pegatron-Gemini-customized-patch.-2.-Modfiy-t.patch
+0004-1.-Add-detect-BMC-existance-to-pause-sensor-monitor-.patch
+0005-1.-Support-IPMI-command-to-access-I2C-if-BMC-exist.-.patch
+0006-Fix-QSFP-self-packet-send-fail-issue-Use-new-functio.patch
+0007-Basic-PCIe-test-with-self-generate-ARP-packets.patch
+0008-Add-PT-4C-test-for-factory-to-replace-burn-in-mode-w.patch
+0009-Adjust-hw-monitor-called-in-SDK-burn-in-mode.patch

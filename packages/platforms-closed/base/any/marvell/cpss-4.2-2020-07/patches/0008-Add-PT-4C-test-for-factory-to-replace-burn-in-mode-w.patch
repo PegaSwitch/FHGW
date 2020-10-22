@@ -1,0 +1,257 @@
+From 899a964f682c09c81a9d3b9a7469c2a39fa08df6 Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Tue, 8 Sep 2020 18:28:50 +0800
+Subject: [PATCH 8/9] Add PT-4C test for factory, to replace burn-in mode with
+ chamber
+
+---
+ .../appDemo/entryPoints/linux/mfg_gemini.c    | 133 ++++++++++++++++--
+ 1 file changed, 119 insertions(+), 14 deletions(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+index da4b1a9f..479d9b30 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+@@ -24,6 +24,7 @@
+ #include <linux/i2c-dev.h>
+ #include <pthread.h>
+ #include <math.h>
++#include <time.h>
+ #include <cpss/generic/cpssTypes.h>
+ #include <cpss/generic/bridge/cpssGenBrgVlanTypes.h>
+ #include <cpss/generic/bridge/private/prvCpssBrgVlanTypes.h>
+@@ -108,7 +109,7 @@ int array_index = 0;
+ int current_sfp_speed = 25, current_qsfp_speed = 100;
+ int lane_num_per_port = 1;
+ 
+-int traffic_request_count = 0, burn_in_time = 0, flooding_sec = 0;
++int traffic_request_count = 0, burn_in_time = 0, flooding_sec = 0, traffic_cycle = 0, traffic_round = 0;
+ int current_action_mode = 0;
+ int rv_s = -1;
+ 
+@@ -120,6 +121,7 @@ MODE_PRETEST,
+ MODE_BURNIN,
+ MODE_AUTO_TRAFFIC_FLOODING,
+ MODE_TEST,
++MODE_PT_4C,
+ };
+ 
+ enum{
+@@ -1960,6 +1962,8 @@ GT_STATUS Check_BurnIn_Counters(char * output_file)
+ 
+     /* Traffic final result shown */
+     memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo ' ' >> %s", output_file);
++    rv_s = system(cmd_buf);
+     if (fail_count > 0)
+     {
+         printf("\nPACKET TEST RESULT: FAIL\n");
+@@ -2193,6 +2197,12 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+ 
+     printf("------------------------------------------------\n");
+ 
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "date >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++    sprintf(cmd_buf, "echo ' ' >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++
+     /* Check Link status first */
+     rc = Check_Link_Status(FILE_BURNIN_TEMP);
+     if (rc == GT_TRUE)
+@@ -2200,6 +2210,9 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+         memset(cmd_buf, 0, sizeof(cmd_buf));
+         sprintf(cmd_buf, "echo \"LINK STATUS TEST RESULT: FAIL\" >> %s", FILE_BURNIN_TEMP);
+         rv_s = system(cmd_buf);
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        sprintf(cmd_buf, "echo \" \" >> %s", FILE_BURNIN_TEMP);
++        rv_s = system(cmd_buf);
+ 
+         printf(" [MFG] Link TEST RESULT : FAIL\n\n");
+         #if 0
+@@ -2211,6 +2224,9 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+         memset(cmd_buf, 0, sizeof(cmd_buf));
+         sprintf(cmd_buf, "echo \"LINK STATUS TEST RESULT: PASS\" >> %s", FILE_BURNIN_TEMP);
+         rv_s = system(cmd_buf);
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        sprintf(cmd_buf, "echo \" \" >> %s", FILE_BURNIN_TEMP);
++        rv_s = system(cmd_buf);
+ 
+         printf(" [MFG] Link TEST RESULT : PASS\n\n");
+     }
+@@ -2224,6 +2240,12 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+     }
+ 
+     /* Start Traffic test */
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo \" --------- Traffic Start ------------------ \" >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++    sprintf(cmd_buf, "date >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++
+     /* Set VLAN per 2 port, prevent forget to set previously. */
+     Vlan_Mode_Set(1);
+ 
+@@ -2275,12 +2297,23 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+ 
+     sleep(3);
+ 
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo \" --------- Traffic End ------------------ \" >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++    sprintf(cmd_buf, "date >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo ' ' >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++
+     /* Check counter */
+     printf(" [MFG] Start checking counters ...\n\n");
+     rc = Check_BurnIn_Counters(FILE_BURNIN_TEMP);
+ 
+     /* Show final result */
+     memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo '' >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
+     if (rc)
+     {
+         sprintf(cmd_buf, "echo \" [MFG] Burn-in result : FAIL\" >> %s", FILE_BURNIN_TEMP);
+@@ -2292,7 +2325,14 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+         printf("\n [MFG] Burn-in result : PASS\n");
+     }
+     rv_s = system(cmd_buf);
+-    printf("------------------------------------------------\n");
++
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "echo '' >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "date >> %s", FILE_BURNIN_TEMP);
++    rv_s = system(cmd_buf);
++    printf("\n------------------------------------------------\n");
+ 
+     return GT_OK;
+ }
+@@ -2733,6 +2773,10 @@ GT_STATUS MFG_Futher_Action(void)
+     char i2ctest_param[64], cmd_long[128];
+     FILE *fp;
+     int cmp_test_time = 0, curr_pwr_cyc_round = 0;
++    int r, actual_traffic_time, target_end_round_timestamp;
++    int DIAG_TRAFFIC_TEST_CHECK_BUFFER_TIME = 120;    /* 2 minutes buffer to check counters */
++    time_t current_time_in_sec = time(NULL);
++    struct tm *time_info;
+ 
+     sleep(5);    /* Add delay to make DUT initialized finish and more stable */
+ 
+@@ -2753,6 +2797,51 @@ GT_STATUS MFG_Futher_Action(void)
+         return GT_OK;
+         #endif
+     }
++    else if (current_action_mode == MODE_PT_4C)
++    {
++        cmp_test_time = burn_in_time;
++        actual_traffic_time = burn_in_time - DIAG_TRAFFIC_TEST_CHECK_BUFFER_TIME;
++        printf(" [Diag Msg] actual traffic time : %d second\n", actual_traffic_time);
++
++        for ( r = 1 ; r <= traffic_round ; r++ )
++        {
++            current_time_in_sec = time(NULL);
++            /*printf(" [MFG Debug] The Unix time for current_time_in_sec is: %ld\n", current_time_in_sec);*/
++            target_end_round_timestamp = current_time_in_sec + burn_in_time;
++            /*printf(" [MFG Debug] The Unix time for target_end_round_timestamp is: %ld\n", target_end_round_timestamp);*/
++            time_info = localtime( &current_time_in_sec );
++
++            /* I2C test */
++            printf("\n[Diag Msg] Run I2C Bus Test -- Cycle %d , Round %d  @  %s\n\n", traffic_cycle, r, asctime(time_info));
++            memset(cmd_long, 0x0, sizeof(cmd_long));
++            sprintf(cmd_long, "source /home/root/mfg/mfg_sources/i2c_bus_test.sh %d %d %d 2>&1 > /tmp/i2c_test_console_out.log &", cmp_test_time, traffic_cycle, r);
++            fp = popen(cmd_long, "w");
++            pclose(fp);
++            sleep(1);
++            printf("\n");
++
++            /* Traffic */
++            printf("\n[Diag Msg] Run Traffic Test -- Cycle %d , Round %d  @  %s\n\n", traffic_cycle, r, asctime(time_info));
++            Do_BurnIn(actual_traffic_time);
++            sleep(3);
++
++            /* Validate Traffic test counters */
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "sh /home/root/mfg/mfg_sources/diag_marvell_traffic_test.sh %d %d", traffic_cycle, r);
++            rv_s = system(cmd_buf);
++
++            /* wait next round's start time achieved */
++            current_time_in_sec = time(NULL);
++            while (current_time_in_sec < target_end_round_timestamp )
++            {
++                sleep(5);
++                current_time_in_sec = time(NULL);
++                /*printf(" [MFG Debug] The Unix time for current_time_in_sec is: %ld , target time is: %ld\n", current_time_in_sec, target_end_round_timestamp);*/
++            }
++        }
++        rv_s = system("killall -9 appDemo");
++        return GT_OK;
++    }
+     else if (current_action_mode == MODE_AUTO_TRAFFIC_FLOODING)
+     {
+         Do_Traffic_Flooding(flooding_sec);
+@@ -2796,6 +2885,7 @@ GT_STATUS MFG_Futher_Action(void)
+ 
+         return GT_OK;
+     }
++    return GT_OK;
+ }
+ 
+ void Pre_Config_Check_And_Set(void)
+@@ -2933,21 +3023,36 @@ void Pre_Config_Check_And_Set(void)
+                 speed_qsfp = 5;    /* QSFP 100G */
+                 interface_type = 4;/* lbm */
+                 vlan_mode = 4;     /* 2-port VLAN for burn-in */
+-                memset(burnin_param, 0x0, sizeof(burnin_param));
+-                if (fgets(burnin_param, 64, burnin_param_file) != NULL)
++                while(!feof(burnin_param_file))
+                 {
+-                    if (0 != strstr(burnin_param, "TIME")) {
+-                        strtok(burnin_param, "=");
+-                        burn_in_time = atoi(strtok(NULL, "="));
+-                        printf(" [MFG] burn-in parameter %d second\n", burn_in_time);
+-                    } else if (0 != strstr(burnin_param, "INTERFACE")) {
+-                        strtok(burnin_param, "=");
+-                        interface_type = atoi(strtok(NULL, "="));
+-                        printf(" [MFG] interface : %d\n", interface_type);
++                    memset(burnin_param, 0x0, sizeof(burnin_param));
++                    if (fgets(burnin_param, 64, burnin_param_file) != NULL)
++                    {
++                        if (0 != strstr(burnin_param, "TIME")) {
++                            strtok(burnin_param, "=");
++                            burn_in_time = atoi(strtok(NULL, "="));
++                            printf(" [MFG] burn-in parameter %d second\n", burn_in_time);
++                        } else if (0 != strstr(burnin_param, "INTERFACE")) {
++                            strtok(burnin_param, "=");
++                            interface_type = atoi(strtok(NULL, "="));
++                            printf(" [MFG] interface : %d\n", interface_type);
++                        } else if (0 != strstr(burnin_param, "TRAFFIC_MODE")) {
++                            strtok(burnin_param, "=");
++                            current_action_mode = atoi(strtok(NULL, "="));
++                            printf(" [MFG] tfc-mode : %d\n", current_action_mode);
++                        } else if (0 != strstr(burnin_param, "TRAFFIC_CYCLE")) {
++                            strtok(burnin_param, "=");
++                            traffic_cycle = atoi(strtok(NULL, "="));
++                            printf(" [MFG] tfc-cycle : %d\n", traffic_cycle);
++                        } else if (0 != strstr(burnin_param, "TRAFFIC_ROUND")) {
++                            strtok(burnin_param, "=");
++                            traffic_round = atoi(strtok(NULL, "="));
++                            printf(" [MFG] tfc-round : %d\n", traffic_round);
++                        }
+                     }
++                    else
++                        printf(" [MFG] error occured during get parameter\n");
+                 }
+-                else
+-                    printf(" [MFG] error occured during get parameter\n");
+ 
+                 fclose(burnin_param_file);
+                 snprintf(linux_action, sizeof(linux_action), "rm %s", FILE_BURNIN_PARAM);
+-- 
+2.28.0
+

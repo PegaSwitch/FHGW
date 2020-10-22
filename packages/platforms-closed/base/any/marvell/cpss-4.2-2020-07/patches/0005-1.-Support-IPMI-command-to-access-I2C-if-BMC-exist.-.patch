@@ -1,0 +1,217 @@
+From 5d4525503e666380e640cb290c8e0548a0842ab8 Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Tue, 4 Aug 2020 16:46:53 +0800
+Subject: [PATCH 5/9] 1. Support IPMI command to access I2C, if BMC exist. 2.
+ To prevent ports initialize cost too much time, 2-1. Make 'EDVT 4C I2C test'
+ called in SDK, after ports initialized done, to prevent I2C bus busy. 2-2.
+ Adjust SFP LED configure order, to prevent ports initialize cost too much
+ time.
+
+---
+ .../appDemo/entryPoints/linux/mfg_gemini.c    | 99 +++++++++++++------
+ 1 file changed, 69 insertions(+), 30 deletions(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+index c39d8f2e..be4d12f6 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+@@ -343,6 +343,7 @@ void I2C_Bus_Mutex_Check_And_Create()
+     /* Check BMC exist or not, to prevent I2C arbiter lock while access I2C if sensor-monitor doing */
+     if (bdx_bmc_exist == 1)
+     {
++        /*printf(" [MFG Debug] Pause BMC sensor-monitor \n");*/
+         memset(cmd_long, 0x0, sizeof(cmd_long));
+         sprintf(cmd_long, "swallow_empty_line=$( { ipmitool raw 0x3c 0xed 0x0 ; } 2>&1 )");    /* temporary disable BMC sensor-monitor */
+         fp = popen(cmd_long, "w");
+@@ -388,6 +389,7 @@ void I2C_Bus_Mutex_Check_And_Create()
+     {
+         pclose(fp);
+ 
++        /*printf(" [MFG Debug] no one in MFG using I2C bus \n");*/
+         memset(cmd, 0x0, sizeof(cmd));
+         sprintf(cmd, "touch /tmp/i2c-bus-mutex");
+         fp = popen(cmd, "w");
+@@ -405,6 +407,7 @@ void I2C_Bus_Mutex_Check_And_Create()
+     else
+     {
+         pclose(fp);
++        /*printf(" [MFG Debug] I2C bus busy, will retry ... \n");*/
+         usleep(1000000);
+         I2C_Bus_Mutex_Check_And_Create();    /* recursive check i2c-mutex node exist or not */
+     }
+@@ -442,13 +445,22 @@ void I2C_Bus_Mutex_Clean()
+ 
+ void I2C_Set (int bus, int addr, int reg, int value)
+ {
++    int I2C_ACTION_DELAY = 100000;
+     char cmd[64];
+     FILE *fp;
+ 
+     memset(cmd, 0x0, sizeof(cmd));
+-    sprintf(cmd, "i2cset -y %d 0x%x 0x%x 0x%x", bus, addr, reg, value);
++
++    if (bdx_bmc_exist == 1)
++        sprintf(cmd, "swallow_empty_line=$( { ipmitool raw 0x3c 0xe1 %d 0x%x 0x%x 0x1 0x%x ; } 2>&1 )", bus, addr, reg, value);
++    else
++        sprintf(cmd, "i2cset -y %d 0x%x 0x%x 0x%x", bus, addr, reg, value);
++
+     fp = popen(cmd, "w");
+     pclose(fp);
++
++    if (bdx_bmc_exist == 0)
++        usleep(I2C_ACTION_DELAY);
+ }
+ 
+ void LED_Setting (IN GT_U8 module_type, IN GT_U8 speed_select)
+@@ -459,16 +471,14 @@ void LED_Setting (IN GT_U8 module_type, IN GT_U8 speed_select)
+     int I2C_MUX_B_CHANNEL_0 = 0x1, I2C_MUX_B_CHANNEL_1 = 0x2, I2C_MUX_B_CHANNEL_2 = 0x4;
+     int CPLD_A_ADDR = 0x74, CPLD_B_ADDR = 0x75, CPLD_C_ADDR = 0x76;
+     int CPLD_A_ZLSR1_REG = 0x17 ; /* SFP-13~20 */
+-    /*int CPLD_A_ZLSR2_REG = 0x18 ;*/ /* SFP-21~28 */
+-    /*int CPLD_A_ZLSR3_REG = 0x19 ;*/ /* SFP-29~36 */
++    int CPLD_A_ZLSR2_REG = 0x18 ; /* SFP-21~28 */
++    int CPLD_A_ZLSR3_REG = 0x19 ; /* SFP-29~36 */
+     int CPLD_A_ZLSR4_REG = 0x1A ; /* SFP-37~40 */
+     int CPLD_B_ZLSR1_REG = 0x22 ; /* SFP- 1~ 8 */
+     int CPLD_B_ZLSR2_REG = 0x23 ; /* SFP- 9~12 */
+     int CPLD_C_ZLSR1_REG = 0x12 ; /* SFP-41~48 */
+     int CPLD_C_ZQLSR_REG = 0x14 ; /* QSFP-49~54 */
+ 
+-    int I2C_ACTION_DELAY = 100000;
+-    int index = 0;
+     int color = 0;
+ 
+     I2C_Bus_Mutex_Check_And_Create();
+@@ -482,27 +492,19 @@ void LED_Setting (IN GT_U8 module_type, IN GT_U8 speed_select)
+ 
+         /* SFP 1 ~ 12 */
+         I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_1);
+-        usleep(I2C_ACTION_DELAY);
+-        for ( index = CPLD_B_ZLSR1_REG ; index <= CPLD_B_ZLSR2_REG ; index++ )
+-        {
+-            I2C_Set(I2C_BUS, CPLD_B_ADDR, index, color);
+-            usleep(I2C_ACTION_DELAY);
+-        }
++        I2C_Set(I2C_BUS, CPLD_B_ADDR, CPLD_B_ZLSR1_REG, color);
++        I2C_Set(I2C_BUS, CPLD_B_ADDR, CPLD_B_ZLSR2_REG, color);
+ 
+         /* SFP 13 ~ 40 */
+         I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_0);
+-        usleep(I2C_ACTION_DELAY);
+-        for ( index = CPLD_A_ZLSR1_REG ; index <= CPLD_A_ZLSR4_REG ; index++ )
+-        {
+-            I2C_Set(I2C_BUS, CPLD_A_ADDR, index, color);
+-            usleep(I2C_ACTION_DELAY);
+-        }
++        I2C_Set(I2C_BUS, CPLD_A_ADDR, CPLD_A_ZLSR1_REG, color);
++        I2C_Set(I2C_BUS, CPLD_A_ADDR, CPLD_A_ZLSR2_REG, color);
++        I2C_Set(I2C_BUS, CPLD_A_ADDR, CPLD_A_ZLSR3_REG, color);
++        I2C_Set(I2C_BUS, CPLD_A_ADDR, CPLD_A_ZLSR4_REG, color);
+ 
+         /* SFP 41 ~ 48 */
+         I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_2);
+-        usleep(I2C_ACTION_DELAY);
+         I2C_Set(I2C_BUS, CPLD_C_ADDR, CPLD_C_ZLSR1_REG, color);
+-        usleep(I2C_ACTION_DELAY);
+     }
+     else if ( module_type == QSFP )
+     {
+@@ -513,9 +515,7 @@ void LED_Setting (IN GT_U8 module_type, IN GT_U8 speed_select)
+ 
+         /* QSFP 49 ~ 56 */
+         I2C_Set(I2C_BUS, I2C_MUX_B, I2C_MUX_REG, I2C_MUX_B_CHANNEL_2);
+-        usleep(I2C_ACTION_DELAY);
+         I2C_Set(I2C_BUS, CPLD_C_ADDR, CPLD_C_ZQLSR_REG, color);
+-        usleep(I2C_ACTION_DELAY);
+     }
+ 
+     I2C_Bus_Mutex_Clean();
+@@ -852,6 +852,14 @@ GT_STATUS SFP_Speed_Set (IN GT_U8 speed_select, IN GT_U8 interface_type)
+         /* printf(" [MFG - DEBUG ] cmp speed : last_sfp_speed = %d , current_sfp_speed = %d \n", last_sfp_speed, current_sfp_speed); */
+         if (current_sfp_speed != last_sfp_speed)
+         {
++            /* Set LED by Linux I2C command */
++            #if 0
++            memset(cmd_buf, 0, sizeof(cmd_buf));
++            sprintf(cmd_buf, "sh /home/root/mfg/mfg_sources/gemini_speed_led_control.sh SFP %d", current_sfp_speed);
++            rv_s = system(cmd_buf);
++            #else
++            LED_Setting(SFP, current_sfp_speed);
++            #endif
+ 
+             /* Write speed to note */
+             fd = fopen(NOTE_SFP_SPEED, "w+");
+@@ -870,15 +878,6 @@ GT_STATUS SFP_Speed_Set (IN GT_U8 speed_select, IN GT_U8 interface_type)
+             cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_TRUE, mode, speed);
+             usleep(ACTION_DELAY);
+ 
+-            /* Set LED by Linux I2C command */
+-            #if 0
+-            memset(cmd_buf, 0, sizeof(cmd_buf));
+-            sprintf(cmd_buf, "sh /home/root/mfg/mfg_sources/gemini_speed_led_control.sh SFP %d", current_sfp_speed);
+-            rv_s = system(cmd_buf);
+-            #else
+-            LED_Setting(SFP, current_sfp_speed);
+-            #endif
+-
+             /* implement Tx-parametes. */
+             if (current_sfp_speed == 25)
+             {
+@@ -2434,6 +2433,10 @@ void Self_Function_Test()
+ 
+ GT_STATUS MFG_Futher_Action(void)
+ {
++    char i2ctest_param[64], cmd_long[128];
++    FILE *fp;
++    int cmp_test_time, curr_pwr_cyc_round = 0;
++
+     sleep(5);    /* Add delay to make DUT initialized finish and more stable */
+ 
+     if (current_action_mode == MODE_PRETEST)
+@@ -2459,7 +2462,43 @@ GT_STATUS MFG_Futher_Action(void)
+         return GT_OK;
+     }
+     else
++    {
++        if ( (fd = fopen("/tmp/current-EDVT-test", "r") ) == NULL)
++        {
++            /* perror("Cannot open file"); */
++            return GT_OK;
++        }
++        else
++        {
++            memset(i2ctest_param, 0x0, sizeof(i2ctest_param));
++            while(!feof(fd))
++            {
++                if(fgets(i2ctest_param, 64, fd) != NULL)
++                {
++                    if (0 != strstr(i2ctest_param, "time_long")) {
++                        strtok(i2ctest_param, "=");
++                        cmp_test_time = atoi(strtok(NULL, "="));
++                        /*printf(" [MFG - Debug] cmp_test_time = %d\n", cmp_test_time);*/
++                    } else if (0 != strstr(i2ctest_param, "cycle_round")) {
++                        strtok(i2ctest_param, "=");
++                        curr_pwr_cyc_round = atoi(strtok(NULL, "="));
++                        /*printf(" [MFG - Debug] curr_pwr_cyc_round = %d\n", curr_pwr_cyc_round);*/
++                    }
++                }
++            }
++
++            fclose(fd);
++            printf("[Diag Msg] Run I2C Bus Test\n\n");
++            memset(cmd_long, 0x0, sizeof(cmd_long));
++            sprintf(cmd_long, "source /home/root/mfg/mfg_sources/i2c_bus_test.sh %d %d 2>&1 > /tmp/i2c_test_console_out.log &", cmp_test_time, curr_pwr_cyc_round);
++            fp = popen(cmd_long, "w");
++            pclose(fp);
++            sleep(1);
++            printf("\n");
++        }
++
+         return GT_OK;
++    }
+ }
+ 
+ void Pre_Config_Check_And_Set(void)
+-- 
+2.28.0
+

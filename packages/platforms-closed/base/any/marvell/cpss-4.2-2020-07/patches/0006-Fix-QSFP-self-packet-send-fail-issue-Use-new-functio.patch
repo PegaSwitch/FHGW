@@ -1,0 +1,448 @@
+From 9e004f42a1f3199352444604e03f21ce837d79e8 Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Thu, 20 Aug 2020 17:57:24 +0800
+Subject: [PATCH 6/9] Fix QSFP self-packet send fail issue Use new function as
+ Marvell document example. Also modify the pre-test & burn-in needed vlan
+ setting.
+
+---
+ .../appDemo/entryPoints/linux/mfg_gemini.c    | 318 ++++++++----------
+ 1 file changed, 135 insertions(+), 183 deletions(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+index be4d12f6..a96c838d 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_gemini.c
+@@ -1453,161 +1453,114 @@ GT_STATUS Ports_JumboFrame_Size_Set(IN GT_U16 mruSize)
+ /* send a specific packet to target "port" */
+ GT_STATUS mtlPktSend(GT_U8 devNum, GT_U8 portNum, GT_U16 portVID)
+ {
+-    CPSS_DXCH_NET_TX_PARAMS_STC pcktParams;
+-    GT_U32                      numOfBufs = 1;
+-    GT_STATUS                   rc;
++    CPSS_DXCH_NET_DSA_FORWARD_STC *forwardPtr;
++    CPSS_DXCH_NET_TX_PARAMS_STC   dxChPcktParams;
++    GT_U8                         *buffList[1];
++    GT_U32                        buffLenList[1];
++    GT_U32                        numOfBufs;
++    GT_STATUS                     rc, tagged = GT_FALSE;
++
++    /* Enable/disable local switching back through the ingress interface for for known Unicast packets. */
++    rc = cpssDxChBrgGenUcLocalSwitchingEnable(devNum, portNum, GT_TRUE);
++    if(rc != GT_OK)
++        return rc;
+ 
+-    osMemSet(&pcktParams, 0, sizeof(CPSS_DXCH_NET_TX_PARAMS_STC));
+-#if 1
+-    #if 0    /* reference from Mercedes3, but still can't send packet to QSFP .*/
+-    pcktParams.sdmaInfo.txQueue = 7;
+-    pcktParams.sdmaInfo.invokeTxBufferQueueEvent = GT_TRUE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = GT_TRUE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.tc = 7;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dp = CPSS_DP_GREEN_E;
+-    pcktParams.dsaParam.commonParams.vid = 4094;
+-
+-    pcktParams.dsaParam.dsaInfo.fromCpu.isTrgPhyPortValid = GT_TRUE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstEport = portNum;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.tag0TpidIndex = 0;
+-    #else
+-    GT_UINTPTR                  txEventHndl;
+-    pcktParams.sdmaInfo.evReqHndl = txEventHndl;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId = 1;
+-
+-    pcktParams.sdmaInfo.txQueue = 1;
+-    pcktParams.sdmaInfo.invokeTxBufferQueueEvent = GT_FALSE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = GT_FALSE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.tc = 1;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dp = 0;
+-    pcktParams.dsaParam.commonParams.vid = portVID;
+-    #endif
++    /* Function sets local switching of Multicast, known and unknown Unicast, and Broadcast traffic per VLAN. */
++    rc = cpssDxChBrgVlanLocalSwitchingEnableSet(devNum, portVID, CPSS_DXCH_BRG_VLAN_LOCAL_SWITCHING_TRAFFIC_TYPE_KNOWN_UC_E, GT_TRUE);  /* CPSS_DXCH_BRG_VLAN_LOCAL_SWITCHING_TRAFFIC_TYPE_FLOODED_E */
++    if(rc != GT_OK)
++        return rc;
+ 
+-    pcktParams.sdmaInfo.recalcCrc = 1;
+-    pcktParams.packetIsTagged = GT_FALSE;
+-    pcktParams.dsaParam.dsaType = CPSS_DXCH_NET_DSA_CMD_FROM_CPU_E;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev = PRV_CPSS_HW_DEV_NUM_MAC(devNum);    /* if ref Mercedes3 set 1008, will fail sending. */
+-    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn = GT_FALSE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered = GT_FALSE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.srcId = 0;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type = CPSS_INTERFACE_PORT_E;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum = PRV_CPSS_HW_DEV_NUM_MAC(devNum);
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum = portNum;       /* portNum >= 64 is fail now QQQQQ */
+-    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged = GT_FALSE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU = GT_FALSE;
+-    pcktParams.dsaParam.commonParams.cfiBit = 0;
+-    pcktParams.dsaParam.commonParams.vpt = 0;
+-    pcktParams.dsaParam.commonParams.dsaTagType = CPSS_DXCH_NET_DSA_TYPE_EXTENDED_E;  /* value same as CPSS_DXCH_NET_DSA_2_WORD_TYPE_ENT ; if use CPSS_DXCH_NET_DSA_4_WORD_TYPE_ENT no pkt out. */
+-    pcktParams.dsaParam.commonParams.dropOnSource = GT_FALSE;
+-    pcktParams.dsaParam.commonParams.packetIsLooped = GT_FALSE;
+-#else    /* ref. Marvell cpssDxChNetIfSdmaSyncTxPacketSend() of cpssDxChNetIfUT.c */
+-    pcktParams.sdmaInfo.txQueue = 3;
+-    pcktParams.sdmaInfo.recalcCrc = GT_FALSE;
+-    pcktParams.sdmaInfo.invokeTxBufferQueueEvent = GT_FALSE;
+-    pcktParams.sdmaInfo.evReqHndl = 0;
+-    pcktParams.packetIsTagged = GT_FALSE;
+-    pcktParams.dsaParam.dsaType = CPSS_DXCH_NET_DSA_CMD_FROM_CPU_E;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev = devNum;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = GT_TRUE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.tc = 7;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dp = CPSS_DP_GREEN_E;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn = GT_TRUE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered = GT_TRUE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.srcId = 0;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type = CPSS_INTERFACE_PORT_E;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum = devNum;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum = portNum;       /* Marvell set 0 , but i didnt change here */
+-    pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId = 1;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged = GT_TRUE;
+-    pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU = GT_TRUE;
+-    pcktParams.dsaParam.commonParams.cfiBit = 1;
+-    pcktParams.dsaParam.commonParams.vid = portVID;   /* Marvell set 100 , but i didnt change here */
+-    pcktParams.dsaParam.commonParams.vpt = 3;
+-    pcktParams.dsaParam.commonParams.dsaTagType = CPSS_DXCH_NET_DSA_4_WORD_TYPE_ENT;
+-    pcktParams.dsaParam.commonParams.dropOnSource = GT_TRUE;
+-    pcktParams.dsaParam.commonParams.packetIsLooped = GT_TRUE;
+-#endif
+-    /* Destination Address */
+-    buffList[0][0]  = 0x00;
+-    buffList[0][1]  = 0x03;
+-    buffList[0][2]  = 0x6d;
+-    buffList[0][3]  = devNum;
+-    buffList[0][4]  = 0;
+-    #if 0    /* 2020 mark off */
+-    if(portNum%2)
+-        buffList[0][5]  = portNum-1;
+-    else
+-        buffList[0][5]  = portNum+1;
+-    #else
+-        buffList[0][5]  = 0x01;
+-    #endif
++    /* The function enables/disables bypass of the bridge engine per port. */
++    rc = cpssDxChCscdPortBridgeBypassEnableSet(devNum, portNum, GT_FALSE);
++    if(rc != GT_OK)
++        return rc;
+ 
+-    /* Source Address */
+-    buffList[0][6]  = 0x00;
+-    buffList[0][7]  = 0x03;
+-    buffList[0][8]  = 0x6d;
+-    buffList[0][9]  = devNum;
+-    buffList[0][10]  = 0;
+-    #if 0    /* 2020 mark off */
+-    buffList[0][11]  = portNum;
+-    #else
+-        buffList[0][11]  = 0x02;
+-    #endif
++    /* in order to see FDB learning on CPU port, make additional settings
++     * API is to Enable/disable learning of new source MAC addresses for packets received on specified port.*/
++    rc = cpssDxChBrgFdbPortLearnStatusSet(devNum, portNum, GT_FALSE, CPSS_LOCK_FRWRD_E);
++    if(rc != GT_OK)
++        return rc;
+ 
+-    /* Data */
+-    buffList[0][12] = 0x00;
+-    buffList[0][13] = 0x00;
+-    buffList[0][14] = 0x00;
+-    buffList[0][15] = 0x00;
+-    buffList[0][16] = 0x00;
+-    buffList[0][17] = 0x00;
+-    buffList[0][18] = 0x00;
+-    buffList[0][19] = 0x00;
+-
+-#if 0     /* 2020 mark off , ref from Mercedes3 */
+-    rc = cpssDxChNetIfSdmaTxQueueEnable(devNum, /* traffic class Quary [0..7] */ 0, /* Enable*/ GT_TRUE);
+-    if (rc != GT_OK)
+-    {
+-        printf(" [MFG] cpssDxChNetIfSdmaTxQueueEnable fail , rc = %d\n", rc);
++    /*  Enables or disables forwarding of New MAC Address messages from a specific ePort to the CPU. */
++    rc = cpssDxChBrgFdbNaToCpuPerPortSet(devNum, portNum, GT_TRUE);
++    if(rc != GT_OK)
+         return rc;
+-    }
+-#endif
+ 
+-#if 0
+-printf(" # pcktParams.sdmaInfo.txQueue = %d\n", pcktParams.sdmaInfo.txQueue);
+-printf(" # pcktParams.sdmaInfo.recalcCrc = %d\n", pcktParams.sdmaInfo.recalcCrc );
+-printf(" # pcktParams.sdmaInfo.invokeTxBufferQueueEvent = %d\n", pcktParams.sdmaInfo.invokeTxBufferQueueEvent );
+-printf(" # pcktParams.packetIsTagged = %d\n", pcktParams.packetIsTagged );
+-printf(" # pcktParams.dsaParam.dsaType = %d\n", pcktParams.dsaParam.dsaType );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.srcHwDev );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.cascadeControl );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.tc = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.tc );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dp = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dp );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterEn );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.egrFilterRegistered );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.srcId = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.srcId );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.type );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.hwDevNum );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.devPort.portNum );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.dstInterface.vlanId );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.dstIsTagged );
+-printf(" # pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU = %d\n", pcktParams.dsaParam.dsaInfo.fromCpu.extDestInfo.devPort.mailBoxToNeighborCPU );
+-printf(" # pcktParams.dsaParam.commonParams.cfiBit = %d\n", pcktParams.dsaParam.commonParams.cfiBit );
+-printf(" # pcktParams.dsaParam.commonParams.vid = %d\n", pcktParams.dsaParam.commonParams.vid );
+-printf(" # pcktParams.dsaParam.commonParams.vpt = %d\n", pcktParams.dsaParam.commonParams.vpt );
+-printf(" # pcktParams.dsaParam.commonParams.dsaTagType = %d\n", pcktParams.dsaParam.commonParams.dsaTagType );
+-printf(" # pcktParams.dsaParam.commonParams.dropOnSource = %d\n", pcktParams.dsaParam.commonParams.dropOnSource );
+-printf(" # pcktParams.dsaParam.commonParams.packetIsLooped = %d\n", pcktParams.dsaParam.commonParams.packetIsLooped );
+-printf(" # buffLenList = %d\n", buffLenList[0] );
+-printf(" # numOfBufs = %d\n\n\n", numOfBufs );
+-#endif
++    /* if we use own device for srcDev arguement we don't want it to be filtered out
++     * API is to Enable/Disable filtering the ingress DSA tagged packets in which source device (Src Dev) equals to local device number. */
++    rc = cpssDxChCscdDsaSrcDevFilterSet(devNum, tagged);
++    if(rc != GT_OK)
++        return rc;
+ 
+-    rc = cpssDxChNetIfSdmaSyncTxPacketSend(devNum, &pcktParams, buffList, buffLenList, numOfBufs);
+-    if (rc != GT_OK)
+-    {
+-        printf(" [MFG] cpssDxChNetIfSdmaSyncTxPacketSend fail , rc = %d\n", rc);
++    osMemSet(&dxChPcktParams, 0, sizeof(dxChPcktParams));
++    dxChPcktParams.cookie                      = NULL;
++    dxChPcktParams.packetIsTagged              = GT_FALSE;
++    dxChPcktParams.sdmaInfo.recalcCrc          = GT_TRUE;
++    dxChPcktParams.sdmaInfo.txQueue            = 7;
++    dxChPcktParams.sdmaInfo.evReqHndl          = 0;
++    dxChPcktParams.sdmaInfo.invokeTxBufferQueueEvent = GT_FALSE;
++
++    /* in BC2 CPU port is cascade port of 4 word type */
++    if(PRV_CPSS_DXCH_PP_HW_INFO_E_ARCH_ENABLED_MAC(0) == GT_TRUE)
++        dxChPcktParams.dsaParam.commonParams.dsaTagType = CPSS_DXCH_NET_DSA_4_WORD_TYPE_ENT;
++    else
++        dxChPcktParams.dsaParam.commonParams.dsaTagType = CPSS_DXCH_NET_DSA_2_WORD_TYPE_ENT;
++
++    dxChPcktParams.dsaParam.commonParams.vpt            = 0;
++    dxChPcktParams.dsaParam.commonParams.cfiBit         = 0;
++    dxChPcktParams.dsaParam.commonParams.vid            = portVID;
++    dxChPcktParams.dsaParam.commonParams.dropOnSource   = GT_FALSE;
++    dxChPcktParams.dsaParam.commonParams.packetIsLooped = GT_FALSE;
++    dxChPcktParams.dsaParam.dsaType                     = CPSS_DXCH_NET_DSA_CMD_FORWARD_E;
++    forwardPtr = &dxChPcktParams.dsaParam.dsaInfo.forward;
++    forwardPtr->dstInterface.type = CPSS_INTERFACE_PORT_E;
++    if(PRV_CPSS_DXCH_PP_HW_INFO_E_ARCH_ENABLED_MAC(0) == GT_TRUE)
++        forwardPtr->dstInterface.devPort.portNum = 18;
++    else
++        forwardPtr->dstInterface.devPort.portNum = portNum;
++
++    forwardPtr->dstInterface.devPort.hwDevNum = PRV_CPSS_HW_DEV_NUM_MAC(0);
++    if(tagged)
++        forwardPtr->srcIsTagged       = CPSS_DXCH_BRG_VLAN_PORT_TAG0_CMD_E;
++    else
++        forwardPtr->srcIsTagged       = CPSS_DXCH_BRG_VLAN_PORT_UNTAGGED_CMD_E;
++
++    forwardPtr->srcHwDev             = devNum;
++    forwardPtr->srcIsTrunk           = GT_FALSE;
++    forwardPtr->source.portNum       = portNum;
++    forwardPtr->srcId                = 0;
++    forwardPtr->egrFilterRegistered  = GT_FALSE;
++    forwardPtr->wasRouted            = GT_FALSE;
++    forwardPtr->qosProfileIndex      = 0;
++    forwardPtr->isTrgPhyPortValid    = GT_FALSE;
++    forwardPtr->dstEport             = portNum;
++    forwardPtr->tag0TpidIndex        = 0;
++    forwardPtr->origSrcPhyIsTrunk    = GT_FALSE;
++    forwardPtr->origSrcPhy.trunkId   = 0;
++    forwardPtr->origSrcPhy.portNum   = 0;
++    forwardPtr->phySrcMcFilterEnable = GT_FALSE;
++
++    numOfBufs = 1;
++
++    buffLenList[0] = 64;
++    buffList[0] = cpssOsCacheDmaMalloc(buffLenList[0]*sizeof(GT_U8));
++    buffList[0][0] = 0;
++    buffList[0][1] = 0x0;
++    buffList[0][2] = 0x0;
++    buffList[0][3] = devNum;
++    buffList[0][4] = 0x34;
++    buffList[0][5] = 0x02;
++    buffList[0][6] = 0;
++    buffList[0][7] = 0x0;
++    buffList[0][8] = 0x0;
++    buffList[0][9] = devNum;
++    buffList[0][10] = 0x0;
++    buffList[0][11] = 0x2;
++
++    rc = cpssDxChNetIfSdmaSyncTxPacketSend(devNum, &dxChPcktParams, buffList, buffLenList, numOfBufs);
++    cpssOsCacheDmaFree(buffList[0]);
++    if(rc != GT_OK)
+         return rc;
+-    }
+ 
+     return rc;
+ }
+@@ -1628,7 +1581,9 @@ GT_STATUS mtl_tx_init(GT_U8 devNum, GT_U8 portNum, GT_U16 portVID)
+ /* param 'mode': 0 = normal test ; 1 = pre-test ; 2 = burn-in */
+ void Send_Packet_From_CPU(int portNum, GT_U32 packetNum, int mode)
+ {
+-    GT_U16 portVID = 1;
++    GT_U16 vid = 0;
++    GT_U16 * portVID = &vid;
++
+     GT_STATUS rc;
+     GT_U32 counter;
+ 
+@@ -1640,7 +1595,13 @@ void Send_Packet_From_CPU(int portNum, GT_U32 packetNum, int mode)
+ 
+     for(counter = 0 ; counter < packetNum ; counter++)
+     {
+-        rc = mtl_tx_init(DEVNUM, portNum, portVID);
++        rc = cpssDxChBrgVlanPortVidGet(DEVNUM, portNum, CPSS_DIRECTION_INGRESS_E, portVID);
++        if(rc != GT_OK)
++        {
++            printf("\r\n# cpssDxChBrgVlanPortVidGet() get vlan id fail ... \r\n");
++        }
++
++        rc = mtl_tx_init(DEVNUM, portNum, vid);
+         if(rc != GT_OK)
+         {
+             printf("\r\n# Port %2d mtl_tx_init : 1st FAIL [ Packet Number: %d ]\r\n", portNum, counter);
+@@ -1652,7 +1613,7 @@ void Send_Packet_From_CPU(int portNum, GT_U32 packetNum, int mode)
+                 printf("\r\nFAIL: cpssDxChPortMacResetStateSet FALSE on port %d \r\n", portNum);
+             sleep(3);
+ 
+-            rc = mtl_tx_init(DEVNUM, portNum, portVID);
++            rc = mtl_tx_init(DEVNUM, portNum, vid);
+             if(rc != GT_OK)
+                 printf("\r\n# Port %2d mtl_tx_init: 2st FAIL [ Packet Number: %d ]\r\n", portNum, counter);
+         }
+@@ -1983,7 +1944,6 @@ GT_STATUS Check_BurnIn_Counters(char * output_file)
+ 
+ GT_STATUS Check_Pretest_Counters(GT_U32 packet_count, char * output_file)
+ {
+-    CPSS_PORT_MAC_COUNTER_SET_STC   portmaccountersetarrayptr;
+     GT_STATUS rv;
+     GT_STATUS traffic_result = GT_OK;
+     int port, index, rv_qsfp_speed, fail_count = 0;
+@@ -2091,9 +2051,7 @@ GT_STATUS Do_PreTest(GT_U32 packet_count)
+ {
+     GT_STATUS rc = GT_OK;
+     GT_U32 round, port;
+-#if 0
+     int rv_qsfp_speed, index;
+-#endif
+ 
+     printf(" [MFG] Start runnung pre-test ...\n\n");
+ 
+@@ -2117,7 +2075,7 @@ GT_STATUS Do_PreTest(GT_U32 packet_count)
+     }
+ 
+     /* Set VLAN per port, prevent forget to set previously. */
+-    Vlan_Mode_Set(3);
++    Vlan_Mode_Set(2);
+ 
+     /*Close MAC not learned event*/
+     cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_MAC_NA_NOT_LEARNED_E, CPSS_EVENT_MASK_E);
+@@ -2141,7 +2099,7 @@ GT_STATUS Do_PreTest(GT_U32 packet_count)
+             /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port); */    /* DEBUG */
+             Send_Packet_From_CPU(port, 100, 1);
+         }
+-    #if 0
++
+         /* QSFP */
+         rv_qsfp_speed = Read_QSFP_Speed_Note();
+         if ( rv_qsfp_speed <= 0)
+@@ -2154,7 +2112,7 @@ GT_STATUS Do_PreTest(GT_U32 packet_count)
+             /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", work_ports[index]);    DEBUG */
+             Send_Packet_From_CPU(work_ports[index], 100, 1);
+         }
+-    #endif
++
+         /* usleep(10000); */
+     }
+ 
+@@ -2164,6 +2122,11 @@ GT_STATUS Do_PreTest(GT_U32 packet_count)
+         /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port);    DEBUG */
+         Send_Packet_From_CPU(port, packet_count % 100, 1);
+     }
++    for (index = 1 ; index <= array_index ; index++)
++    {
++        /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", work_ports[index]);    DEBUG */
++        Send_Packet_From_CPU(work_ports[index], packet_count % 100, 1);
++    }
+ 
+     sleep(3);
+ 
+@@ -2190,8 +2153,8 @@ GT_STATUS Do_PreTest(GT_U32 packet_count)
+ 
+ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+ {
+-    int port;
+-    int i, rv_qsfp_speed;
++    int port, index;
++    int i, rv_qsfp_speed, qsfp_pkt_base;
+     GT_STATUS rc = GT_OK;
+ 
+     printf("------------------------------------------------\n");
+@@ -2228,7 +2191,7 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+ 
+     /* Start Traffic test */
+     /* Set VLAN per 2 port, prevent forget to set previously. */
+-    Vlan_Mode_Set(4);
++    Vlan_Mode_Set(1);
+ 
+     /*Close MAC not learned event*/
+     cpssEventDeviceMaskSet(DEVNUM, CPSS_PP_MAC_NA_NOT_LEARNED_E, CPSS_EVENT_MASK_E);
+@@ -2243,34 +2206,23 @@ GT_STATUS Do_BurnIn(GT_U32 time_seconds)
+ 
+     /* Start send packet */
+     printf("\n [MFG] Start traffic test ...\n\n");
+-    #if 1
+-    for(port = SFP_MAC_PORT_START ; port < SFP_MAC_PORT_END ; port++)
++    /* SFP ports */
++    for(port = SFP_MAC_PORT_START ; port <= SFP_MAC_PORT_END ; port++)
+     {
+-        /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port);    DEBUG */
+-        if (port == (SFP_MAC_PORT_END - 1))
+-            Send_Packet_From_CPU(port, 10, 1);    /* go 5 port-group (1 SFP pair & 4 QSFP pair) and only sigle way , so need to * 10 pkt amount. */
+-        else
+-            Send_Packet_From_CPU(port, 1, 1);
++        Send_Packet_From_CPU(port, 1, 1);
+     }
+-    #else
+-    for(port = SFP_MAC_PORT_END ; port >= SFP_MAC_PORT_START ; port--)
++
++    /* QSFP ports */
++    for (index = 1 ; index <= array_index ; index++)
+     {
+-        /* printf("\r\n [MFG - debug ]# port %2d sending packet \r\n", port);    DEBUG */
+-        if (port == SFP_MAC_PORT_END)
+-        {
+-            Send_Packet_From_CPU(port, 8, 1);    /* go 4 port-group (4 QSFP pair) and only sigle way , so need to * 4*2=8 pkt amount. */
+-            sleep(1);
+-        }
+-        else if (port == (SFP_MAC_PORT_END - 1))
+-        {
+-            cpssDxChBrgVlanPortVidSet(DEVNUM, work_ports[array_index], CPSS_DIRECTION_INGRESS_E, ( SFP_VLAN_PAIR + 1 + 1));    /* restore last QSFP pvid to first QSFP */
+-            cpssDxChBrgVlanPortVidSet(DEVNUM, SFP_MAC_PORT_END, CPSS_DIRECTION_INGRESS_E, ( SFP_VLAN_PAIR + 1 ));              /* restore SFP-48 pvid to SFP47 */
+-            Send_Packet_From_CPU(port, 1, 1);
+-        }
++        if (rv_qsfp_speed == 100)
++            qsfp_pkt_base = 4;
++        else if (rv_qsfp_speed == 50)
++            qsfp_pkt_base = 2;
+         else
+-            Send_Packet_From_CPU(port, 1, 1);
++            qsfp_pkt_base = 1;
++        Send_Packet_From_CPU(work_ports[index], qsfp_pkt_base, 1);
+     }
+-    #endif
+ 
+     sleep(time_seconds);
+ 
+@@ -2435,7 +2387,7 @@ GT_STATUS MFG_Futher_Action(void)
+ {
+     char i2ctest_param[64], cmd_long[128];
+     FILE *fp;
+-    int cmp_test_time, curr_pwr_cyc_round = 0;
++    int cmp_test_time = 0, curr_pwr_cyc_round = 0;
+ 
+     sleep(5);    /* Add delay to make DUT initialized finish and more stable */
+ 
+-- 
+2.28.0
+

@@ -1,0 +1,95 @@
+From 6b7827639a9fb731edae143f3db4ef3c21480635 Mon Sep 17 00:00:00 2001
+From: Max Lee <max_lee@pegatroncorp.com>
+Date: Thu, 20 Aug 2020 17:48:23 +0800
+Subject: [PATCH 1/9] fix cpss build error...
+
+---
+ Makefile                                                        | 2 +-
+ cpssEnabler/mainOs/src/gtOs/linux/osLinuxIo.c                   | 2 +-
+ .../ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3Training.c           | 2 +-
+ .../ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3TrainingHwAlgos.c    | 2 +-
+ .../labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3Bc2.c        | 2 +-
+ .../labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3BobK.c       | 2 +-
+ 6 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 9b9a8c94..d63c6000 100644
+--- a/Makefile
++++ b/Makefile
+@@ -532,7 +532,7 @@ WIN32_CFLAGS := -nologo $(addprefix -I, $(CPSS_INC_PATH)) $(TARGET_SPECIFIC_CFLA
+ ifneq ($(GM),)
+  WIN32_CFLAGS += -MTd
+ endif
+-CFLAGS := -Wall -Wextra -Werror -Wno-error=cpp $(CAST) -ansi $(TARGET_SPECIFIC_CFLAGS) -fno-builtin -funroll-loops \
++CFLAGS := -Wall -Wextra -Wno-error=cpp $(CAST) -ansi $(TARGET_SPECIFIC_CFLAGS) -fno-builtin -funroll-loops \
+            $(SHARED_CFLAGS) $(addprefix -I, $(CPSS_INC_PATH)) $(CFLAGS)
+ #-Wno-cast-function-type  -Wextra
+ 
+diff --git a/cpssEnabler/mainOs/src/gtOs/linux/osLinuxIo.c b/cpssEnabler/mainOs/src/gtOs/linux/osLinuxIo.c
+index 95b7d166..bbf1110d 100644
+--- a/cpssEnabler/mainOs/src/gtOs/linux/osLinuxIo.c
++++ b/cpssEnabler/mainOs/src/gtOs/linux/osLinuxIo.c
+@@ -36,7 +36,7 @@
+ 
+ GT_STATUS (*osPrintSyncUartBindFunc)(char *, GT_U32) = NULL;
+ GT_BOOL osPrintSyncEnableFlag = GT_FALSE;
+-genFS_STC cmdFS;
++extern genFS_STC cmdFS;
+ 
+ /************* Static variables ***********************************************/
+ static OS_BIND_STDOUT_FUNC_PTR writeFunctionPtr = NULL;
+diff --git a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3Training.c b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3Training.c
+index d1b96337..e34c5372 100644
+--- a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3Training.c
++++ b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3Training.c
+@@ -81,7 +81,7 @@ extern GT_U8 genericInitController;
+ MV_HWS_RESULT trainingResult[MAX_STAGE_LIMIT][MAX_INTERFACE_NUM];
+ AUTO_TUNE_STAGE trainingStage = INIT_CONTROLLER;
+ GT_U32 LoadAtHigh = 1;
+-GT_U32 freqVal[DDR_FREQ_LIMIT];
++extern GT_U32 freqVal[DDR_FREQ_LIMIT];
+ GT_U32 fingerTest = 0, pFingerStart = 11,  pFingerEnd = 64,  nFingerStart = 11, nFingerEnd = 64, pFingerStep = 3, nFingerStep = 3;
+ GT_U32 clampTbl[] = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+ GT_U32 mode2T = 0xFF;  /*Initiate to 0xFF , this variable is define by user in debug mode*/
+diff --git a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3TrainingHwAlgos.c b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3TrainingHwAlgos.c
+index 45b6be46..a8f9d978 100644
+--- a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3TrainingHwAlgos.c
++++ b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Driver/ddr3/mvHwsDdr3TrainingHwAlgos.c
+@@ -50,7 +50,7 @@ GT_U16 lastValidWindow[MAX_BUS_NUM][MAX_INTERFACE_NUM] ;
+ GT_U8 limVref[MAX_BUS_NUM][MAX_INTERFACE_NUM] ;
+ GT_U8 interfaceState[MAX_INTERFACE_NUM] ;
+ GT_U8 pupState[MAX_BUS_NUM][MAX_INTERFACE_NUM] ;
+-GT_U8 vrefWindowSize[MAX_INTERFACE_NUM][MAX_BUS_NUM];
++extern GT_U8 vrefWindowSize[MAX_INTERFACE_NUM][MAX_BUS_NUM];
+ GT_U8 vrefWindowSizeTh = 12;
+ 
+ extern GT_U32 ckDelay;
+diff --git a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3Bc2.c b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3Bc2.c
+index cdbbbe37..518991af 100644
+--- a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3Bc2.c
++++ b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3Bc2.c
+@@ -168,7 +168,7 @@ extern GT_U8 calibrationUpdateControl; /*2 external only, 1 is internal only*/
+ extern GT_U32 dfsLowFreq;
+ 
+ GT_U32 debugBc2 = 0;
+-GT_U32  pipeMulticastMask;
++static GT_U32  pipeMulticastMask;
+ 
+ static GT_U32 csCbeReg[]=
+ {
+diff --git a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3BobK.c b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3BobK.c
+index 2881d89c..95be9b6f 100644
+--- a/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3BobK.c
++++ b/mainPpDrv/src/cpss/generic/labServices/ddr/ddr3libv2/src/Silicon/mvHwsDdr3BobK.c
+@@ -206,7 +206,7 @@ extern GT_U8 calibrationUpdateControl; /*2 external only, 1 is internal only*/
+ extern GT_U32 dfsLowFreq;
+ 
+ GT_U32 debugBobK = 0;
+-GT_U32  pipeMulticastMask;
++static GT_U32  pipeMulticastMask;
+ 
+ #if defined(CPSS_BUILD)
+ static GT_U32 csCbeReg[]=
+-- 
+2.28.0
+
