@@ -7,3 +7,7 @@ class OnlPlatform_x86_64_pegatron_fm_6609_bn_ff_r0(OnlPlatformPegatron):
     SYS_OBJECT_ID=".2"
     PORT_COUNT=0
     PORT_CONFIG="None"
+
+    def baseconfig(self):
+	self.insmod('pega_platform')
+	return True
