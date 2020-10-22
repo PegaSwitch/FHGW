@@ -1,0 +1,33 @@
+From 3e3ced8d0e9b185212042cb08c9038202be2fc1d Mon Sep 17 00:00:00 2001
+From: Max Lee <yowching.lee@gmail.com>
+Date: Fri, 24 Apr 2020 17:32:50 +0800
+Subject: [PATCH 1/4] add ONLPM_OPTION_VENDORS to specify which platforms will
+ be build
+
+---
+ tools/onlpm.py | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/tools/onlpm.py b/tools/onlpm.py
+index 70098d85..e39b419d 100755
+--- a/tools/onlpm.py
++++ b/tools/onlpm.py
+@@ -1009,10 +1009,15 @@ class OnlPackageManager(object):
+         builder_arches = self.__builder_arches()
+ 
+         for root, dirs, files in os.walk(basedir):
++            dentry = root.split('/')
+             for f in files:
+                 if f in pkgspec:
+                     if "%s.disabled" % f in files:
+                         logger.warn("Skipping %s due to .disabled file)." % os.path.join(root, f))
++                    elif 'ONLPM_OPTION_VENDORS' in os.environ and \
++                         'platforms' in dentry and \
++                         not (set(os.environ['ONLPM_OPTION_VENDORS'].split(':')) & set(dentry)):
++                        logger.warn("Skipping %s due to not included in ${ONLPM_OPTIONS_VENDORS}..." % root)
+                     else:
+                         pg = OnlPackageGroup()
+                         try:
+-- 
+2.28.0
+

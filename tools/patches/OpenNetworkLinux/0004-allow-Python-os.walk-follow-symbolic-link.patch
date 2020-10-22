@@ -1,0 +1,57 @@
+From 64b89690ce6cf68316d42ec014073e2a9a524b4c Mon Sep 17 00:00:00 2001
+From: Max Lee <max_lee@pegatroncorp.com>
+Date: Thu, 22 Oct 2020 16:55:26 +0800
+Subject: [PATCH 4/4] allow Python os.walk follow symbolic link
+
+---
+ tools/mkinstaller.py | 2 +-
+ tools/onlpm.py       | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/tools/mkinstaller.py b/tools/mkinstaller.py
+index d54c805f..b137425b 100755
+--- a/tools/mkinstaller.py
++++ b/tools/mkinstaller.py
+@@ -130,7 +130,7 @@ class InstallerShar(object):
+     def add_swi(self, package):
+         edir = os.path.join(self.work_dir, "swidir")
+         subprocess.check_output('onlpm --extract-dir %s %s' % (package, edir), shell=True)
+-        for (root, dirs, files) in os.walk(edir):
++        for (root, dirs, files) in os.walk(edir, True, None, True):
+             for f in files:
+                 if f.endswith(".swi"):
+                     self.add_file(os.path.join(root, f))
+diff --git a/tools/onlpm.py b/tools/onlpm.py
+index e39b419d..97a618be 100755
+--- a/tools/onlpm.py
++++ b/tools/onlpm.py
+@@ -868,7 +868,7 @@ class OnlPackageRepoUnlocked(object):
+         force: Passed to extract() as the force option."""
+ 
+         edir = self.extract(pkg, force=force)
+-        for root, dirs, files in os.walk(edir):
++        for root, dirs, files in os.walk(edir, True, None, True):
+             for file_ in files:
+                 if file_ == filename:
+                     return os.path.join(root, file_)
+@@ -893,7 +893,7 @@ class OnlPackageRepoUnlocked(object):
+             if os.path.isdir(apath):
+                 return apath
+         else:
+-            for root, dirs, files in os.walk(edir):
++            for root, dirs, files in os.walk(edir, True, None, True):
+                 if os.path.basename(root) == dirname and root != edir:
+                     return root
+ 
+@@ -1008,7 +1008,7 @@ class OnlPackageManager(object):
+ 
+         builder_arches = self.__builder_arches()
+ 
+-        for root, dirs, files in os.walk(basedir):
++        for root, dirs, files in os.walk(basedir, True, None, True):
+             dentry = root.split('/')
+             for f in files:
+                 if f in pkgspec:
+-- 
+2.28.0
+

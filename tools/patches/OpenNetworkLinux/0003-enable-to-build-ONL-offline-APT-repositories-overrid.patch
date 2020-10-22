@@ -1,0 +1,64 @@
+From eeb55b8f331760f21b780979cfe6c151273cfe03 Mon Sep 17 00:00:00 2001
+From: Max Lee <yowching.lee@gmail.com>
+Date: Wed, 29 Apr 2020 15:11:10 +0800
+Subject: [PATCH 3/4] enable to build ONL offline: APT repositories override...
+
+---
+ builds/any/rootfs/jessie/standard/standard.yml | 4 ++--
+ setup.env                                      | 5 +++++
+ tools/onlrfs.py                                | 3 +++
+ 3 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/builds/any/rootfs/jessie/standard/standard.yml b/builds/any/rootfs/jessie/standard/standard.yml
+index d26010c7..af52d473 100644
+--- a/builds/any/rootfs/jessie/standard/standard.yml
++++ b/builds/any/rootfs/jessie/standard/standard.yml
+@@ -43,13 +43,13 @@ Multistrap:
+ 
+   ONL:
+     packages: *Packages
+-    source: http://apt.opennetlinux.org/debian
++    source: http://${ONL_APT_ONL_SITE}
+     suite: unstable
+     omitdebsrc: true
+ 
+   ONL-Local:
+     packages: *Packages
+-    source: http://${APT_CACHE}apt.opennetlinux.org/debian
++    source: http://${APT_CACHE}${ONL_APT_ONL_SITE}
+     suite: unstable
+     omitdebsrc: true
+ 
+diff --git a/setup.env b/setup.env
+index 0f902b22..83cfef25 100755
+--- a/setup.env
++++ b/setup.env
+@@ -36,6 +36,11 @@ $ONL/tools/make-versions.py --import-file=$ONL/tools/onlvi --class-name=OnlVersi
+ #
+ export BUILDROOTMIRROR=${BUILDROOTMIRROR:-"http://buildroot.opennetlinux.org/dl"}
+ 
++#
++#
++#
++export ONL_APT_ONL_SITE=${ONL_APT_ONL_SITE:-"apt.opennetlinux.org/debian"}
++
+ # These submodules are required for almost everything.
+ $ONL/tools/submodules.py $ONL sm/infra
+ $ONL/tools/submodules.py $ONL sm/bigcode
+diff --git a/tools/onlrfs.py b/tools/onlrfs.py
+index a9a4cb5d..23049e05 100755
+--- a/tools/onlrfs.py
++++ b/tools/onlrfs.py
+@@ -322,6 +322,9 @@ class OnlRfsBuilder(object):
+         if arch == 'powerpc':
+             self.DEFAULTS['DEBIAN_MIRROR'] = 'archive.debian.org/debian/'
+ 
++        if 'ONL_APT_DEBIAN_SITE' in os.environ:
++            self.DEFAULTS['DEBIAN_MIRROR'] = os.environ['ONL_APT_DEBIAN_SITE']
++
+         self.kwargs.update(self.DEFAULTS)
+         self.__load(config)
+         self.__validate()
+-- 
+2.28.0
+

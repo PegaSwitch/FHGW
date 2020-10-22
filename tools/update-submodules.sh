@@ -16,3 +16,16 @@ if [ ! -h $ONL/packages/platforms/pegatron ]; then
     (cd $ONL/packages/platforms && ln -s ../../../tools/platforms/pegatron pegatron)
 fi
 
+# Setup OpenNetworkLinux submdules
+
+if [ ! -d $ONL/.PATCHED ]; then
+    (cd $ONL && git am $ONLBASE/tools/patches/OpenNetworkLinux/*.patch)
+    touch $ONL/.PATCHED
+fi
+
+# Setup sm/infra submodule
+
+if [ ! -d $ONL/sm/infra/.PATCHED ]; then
+    (cd $ONL/sm/infra && git am $ONLBASE/tools/patches/infra/*.patch)
+    touch $ONL/sm/infra/.PATCHED
+fi

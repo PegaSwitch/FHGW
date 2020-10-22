@@ -1,0 +1,67 @@
+From d3f89e814d0294c69a2601dc48dee2e7ccc6858d Mon Sep 17 00:00:00 2001
+From: Max Lee <max_lee@pegatroncorp.com>
+Date: Thu, 22 Oct 2020 17:00:16 +0800
+Subject: [PATCH] allow Python os.walk through symbolic link
+
+---
+ builder/unix/tools/manifesttool.py | 2 +-
+ builder/unix/tools/mmg.py          | 2 +-
+ builder/unix/tools/modtool.py      | 2 +-
+ builder/unix/tools/modulemakes.py  | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/builder/unix/tools/manifesttool.py b/builder/unix/tools/manifesttool.py
+index e83f047..4229ec1 100755
+--- a/builder/unix/tools/manifesttool.py
++++ b/builder/unix/tools/manifesttool.py
+@@ -69,7 +69,7 @@ class ManifestBase(object):
+         s += self.commentStop
+         s += self.initsection()
+         self.modules = {}
+-        for root, dirs, files in os.walk('.'):
++        for root, dirs, files in os.walk('.', True, None, True):
+             for file_ in files:
+                 if file_ == "Makefile":
+                     fname = "%s/%s" % (root, file_)
+diff --git a/builder/unix/tools/mmg.py b/builder/unix/tools/mmg.py
+index 7f1eb8c..9e96eb0 100755
+--- a/builder/unix/tools/mmg.py
++++ b/builder/unix/tools/mmg.py
+@@ -46,7 +46,7 @@ def generate_manifest_data(dirs=["."],
+ 
+     for dirspec in dirs:
+         for dir_ in dirspec.split(':'):
+-            for root, dirs, files in os.walk(os.path.abspath(dir_)):
++            for root, dirs, files in os.walk(os.path.abspath(dir_), True, None, True):
+                 for file_ in files:
+ 
+                     moduleName = None
+diff --git a/builder/unix/tools/modtool.py b/builder/unix/tools/modtool.py
+index b6f0f91..50f506c 100755
+--- a/builder/unix/tools/modtool.py
++++ b/builder/unix/tools/modtool.py
+@@ -37,7 +37,7 @@ class ModuleTool(object):
+     def load_modules(self, target):
+         target = os.path.abspath(target)
+         if os.path.isdir(target):
+-            for (root, dirs, files) in os.walk(target):
++            for (root, dirs, files) in os.walk(target, True, None, True):
+                 for f in files:
+                     if f == ".module":
+                         self.__load_module(os.path.join(root, f))
+diff --git a/builder/unix/tools/modulemakes.py b/builder/unix/tools/modulemakes.py
+index c65399d..31ee35e 100755
+--- a/builder/unix/tools/modulemakes.py
++++ b/builder/unix/tools/modulemakes.py
+@@ -57,7 +57,7 @@ found = {}
+ for p in patterns:
+     found[p] = []
+ 
+-for root, dirs, files in os.walk(ops.root):
++for root, dirs, files in os.walk(ops.root, True, None, True):
+     for file_ in files:
+         if file_ in patterns:
+             found[file_].append(dict(root=root,file=file_))
+-- 
+2.28.0
+

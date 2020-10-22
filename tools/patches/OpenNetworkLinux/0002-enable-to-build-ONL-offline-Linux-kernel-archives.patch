@@ -1,0 +1,40 @@
+From a7195654190d2f7f22697276d3608d67f153301d Mon Sep 17 00:00:00 2001
+From: Max Lee <yowching.lee@gmail.com>
+Date: Tue, 21 Apr 2020 17:13:55 +0800
+Subject: [PATCH 2/4] enable to build ONL offline: Linux kernel archives...
+
+---
+ make/kbuild.mk | 2 +-
+ setup.env      | 3 +++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/make/kbuild.mk b/make/kbuild.mk
+index 06d39e2f..40f90c04 100644
+--- a/make/kbuild.mk
++++ b/make/kbuild.mk
+@@ -103,7 +103,7 @@ K_ARCHIVE_NAME := $(K_NAME).$(K_ARCHIVE_EXT)
+ endif
+ K_ARCHIVE_PATH := $(ONL_KERNELS)/archives/$(K_ARCHIVE_NAME)
+ ifndef K_ARCHIVE_URL
+-K_ARCHIVE_URL := https://www.kernel.org/pub/linux/kernel/v$(K_MAJOR_VERSION).x/$(K_ARCHIVE_NAME)
++K_ARCHIVE_URL := $(K_ARCHIVE_SITE)/pub/linux/kernel/v$(K_MAJOR_VERSION).x/$(K_ARCHIVE_NAME)
+ endif
+ K_SOURCE_DIR := $(K_TARGET_DIR)/$(K_NAME)
+ K_MBUILD_DIR := $(K_SOURCE_DIR)-mbuild
+diff --git a/setup.env b/setup.env
+index 63f5fa1d..0f902b22 100755
+--- a/setup.env
++++ b/setup.env
+@@ -25,6 +25,9 @@ export PATH="$ONL/tools/scripts:$ONL/tools:$PATH"
+ # Default parallel build settings
+ export ONL_MAKE_PARALLEL=-j$(echo "$(nproc) * 2" | bc)
+ 
++# Linux kernel local archives
++export K_ARCHIVE_SITE=${K_ARCHIVE_SITE:-"https://www.kernel.org"}
++
+ # Version files
+ $ONL/tools/make-versions.py --import-file=$ONL/tools/onlvi --class-name=OnlVersionImplementation --output-dir $ONL/make/versions
+ 
+-- 
+2.28.0
+
