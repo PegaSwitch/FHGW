@@ -1,0 +1,1 @@
+!include $ONLBASE/packages/platforms-closed/base/any/mfg/APKG.yml ARCH=amd64 VENDOR=pegatron BASENAME=x86-64-pegatron-fm-6609-bn-ff

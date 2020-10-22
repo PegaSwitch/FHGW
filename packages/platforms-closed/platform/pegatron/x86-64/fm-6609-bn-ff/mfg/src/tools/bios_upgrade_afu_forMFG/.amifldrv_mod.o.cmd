@@ -1,0 +1,1 @@
+cmd_/home/swrd/tmp/afu_mfg/amifldrv_mod.o := ld -m elf_x86_64  -z max-page-size=0x200000   -r -o /home/swrd/tmp/afu_mfg/amifldrv_mod.o /home/swrd/tmp/afu_mfg/amifldrv.o /home/swrd/tmp/afu_mfg/amiwrap.o 

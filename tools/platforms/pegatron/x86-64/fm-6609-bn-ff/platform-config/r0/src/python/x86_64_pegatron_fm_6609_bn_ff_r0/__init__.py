@@ -10,4 +10,5 @@ class OnlPlatform_x86_64_pegatron_fm_6609_bn_ff_r0(OnlPlatformPegatron):
 
     def baseconfig(self):
 	self.insmod('pega_platform')
+        os.system("cd /root && ./setup.sh")
 	return True

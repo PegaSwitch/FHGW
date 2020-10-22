@@ -1,0 +1,106 @@
+delaytime=50000
+
+## Time
+export TZ='Asia/Taipei'
+
+## Platform detect, to decide gloable variables.
+source /home/root/mfg/mfg_sources/platform_detect.sh
+
+function Write_I2C_Device_Node()
+{
+    i2c_bus=$1
+    i2c_device=$2
+    i2c_register=$3
+    i2c_data=$4
+
+    if (( $FLAG_USE_IPMI == "$FALSE" )); then
+        i2cset -y $i2c_bus $i2c_device $i2c_register $i2c_data
+    else
+        swallow_empty_line=$( { ipmitool raw $BMC_NET_FUNCTION $BMC_I2C_SET $i2c_bus $i2c_device $i2c_register $BMC_I2C_ACCESS_DATALEN_ONE $i2c_data ; } 2>&1 )
+    fi
+    usleep $delaytime
+}
+
+function I2C_Device_Detect()
+{
+    i2c_bus=$1
+    i2c_device=$2
+
+    ## Check Device Exist
+    result=$( { i2cdetect -y $i2c_bus; } 2>&1 )
+    usleep 1000
+
+    ## Get last match sub-string of string(i2c_device) after specified character(x).
+    i2c_device_num=${i2c_device##*x}
+    #echo "[MFG Debug] i2c_device_num ---> $i2c_device_num"
+    if [[ $result != *"$i2c_device_num"* ]]; then
+        device_exist_check=$FAIL
+        return
+    else
+        device_exist_check=$SUCCESS
+    fi
+}
+
+## enable i2c path with i2c arbiter.
+function I2C_Arbiter_Handle ()
+{
+    i2cset -y $I2C_BUS $I2C_ARBITER_ADDR 0x1 0x1
+    usleep $I2C_ACTION_DELAY
+    read_check=$( { i2cget -y $I2C_BUS $I2C_ARBITER_ADDR $I2C_ARBITER_CTRL_REG ; } 2>&1 )
+    if (( $read_check == 0x3 )); then
+        i2cset -y $I2C_BUS $I2C_ARBITER_ADDR $I2C_ARBITER_CTRL_REG 0x7
+    fi
+
+    ## For debug whether path open ok or not
+    # usleep $I2C_ACTION_DELAY
+    # i2cdetect -y $I2C_BUS
+}
+
+## For I2C arbiter, as a backup action.
+#I2C_Device_Detect $I2C_BUS $I2C_ARBITER_ADDR
+#if (( $device_exist_check == $SUCCESS )); then
+#    I2C_Arbiter_Handle
+#fi
+
+## check IP was DHCP or not, if not, force it as default IP.
+check_ip_exist=$( { ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}' ; } 2>&1 )
+if [ -z $check_ip_exist ]; then
+    ifconfig eth0 192.168.1.1 up
+    echo " # No DHCP link, so manual config eth0 IP as 192.168.1.1"
+fi
+
+if [[ ! -f "$platform_init_flag" ]]; then
+    if (( $FLAG_USE_IPMI == "$TRUE" )); then
+        swallow_empty_line=$( { ipmitool raw $BMC_NET_FUNCTION $BMC_SENSOR_MONITOR_REG $BMC_SENSOR_DISABLE ; } 2>&1 )    # disable BMC sensor monitor to prevent job was paused or interfered in.
+    fi
+
+    ## remain SYS-STA_LED green blink, but set PWR-STA_LED set green on.
+    Write_I2C_Device_Node $I2C_BUS $I2C_MUX_B $I2C_MUX_REG $I2C_MUX_CHANNEL_SYSTEM_LED
+    Write_I2C_Device_Node $I2C_BUS $CPLD_LED_CONTROL $CPLD_LEDCR1_REG $CPLD_LEDCR1_VALUE_DEFAULT
+    Write_I2C_Device_Node $I2C_BUS $I2C_MUX_B $I2C_MUX_REG 0x0   # resume MUX channel to 0
+
+    sleep 1
+    source $MFG_SOURCE_DIR/onie_syseeprom_init.sh
+
+    if (( $FLAG_USE_IPMI == "$TRUE" )); then
+        swallow_empty_line=$( { ipmitool raw $BMC_NET_FUNCTION $BMC_SENSOR_MONITOR_REG $BMC_SENSOR_ENABLE ; } 2>&1 )
+    fi
+
+    ## turn-off kernel msg for PT request.
+    echo 3 > /proc/sys/kernel/printk
+
+    printf "\nDate : "
+    date
+    printf "\n"
+
+    cd $MFG_WORK_DIR    ## /home/root/mfg/
+
+    ## create samephore to prevent re-init again.
+    touch $platform_init_flag
+    sync
+    sleep 2
+
+    ## customize setting for each project.
+    bash $MFG_SOURCE_DIR/platform_init.sh
+fi
+

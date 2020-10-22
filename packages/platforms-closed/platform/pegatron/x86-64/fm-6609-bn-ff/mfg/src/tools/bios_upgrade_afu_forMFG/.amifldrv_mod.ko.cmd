@@ -1,0 +1,1 @@
+cmd_/home/swrd/tmp/afu_mfg/amifldrv_mod.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -T /home/swrd/project2/mfg/bdxde_common/build/tmp/work-shared/intel-corei7-64/kernel-source/scripts/module-common.lds --build-id  -o /home/swrd/tmp/afu_mfg/amifldrv_mod.ko /home/swrd/tmp/afu_mfg/amifldrv_mod.o /home/swrd/tmp/afu_mfg/amifldrv_mod.mod.o ;  true

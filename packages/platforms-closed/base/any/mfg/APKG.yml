@@ -1,0 +1,34 @@
+############################################################
+#
+# PKG template for all platform-closed module packages
+#
+############################################################
+prerequisites:
+  packages:
+    - onl-platform-sdk-$BASENAME:$ARCH
+
+packages:
+  - name: onl-platform-mfg-${BASENAME}
+    version: 1.0.0
+    arch: $ARCH
+    copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+    maintainer: support@bigswitch.com
+    support: opennetworklinux@googlegroups.com
+    summary: ONL Platform Manufacture Package for the ${BASENAME}
+
+    files:
+      - src/coreboot_fw_upgrade/: /root/coreboot_fw_upgrade/
+      - src/cpld_fw_upgrade/: /root/cpld_fw_upgrade/
+      - src/mcu_fw_upgrade/: /root/mcu_fw_upgrade/
+      - src/mfg_sources/: /root/mfg_sources/
+      - src/onie-syseeprom/: /root/onie-syseeprom/
+      - src/platform_initialization/: /root/platform_initialization/
+      - src/platform_sdk_start/: /root/platform_sdk_start/
+      - src/platform_traffic_test/: /root/platform_traffic_test/
+      - src/platform_traffic_test_entry/: /root/platform_traffic_test_entry/
+      - src/tools/: /root/tools/
+      - src/LICENSE: /root/
+      - src/profile: /root/
+      - src/setup.sh: /root/
+
+    changelog: Changes
