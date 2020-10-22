@@ -16,6 +16,7 @@ Packages: &Packages
   - !include $ONLBASE/builds/any/rootfs/$ONL_DEBIAN_SUITE/common/${ARCH}-base-packages.yml
   - !include $ONL/builds/any/rootfs/$ONL_DEBIAN_SUITE/common/${ARCH}-onl-packages.yml
   - !script  $ONL/tools/onl-platform-pkgs.py ${PLATFORM_LIST}
+  - !include $ONLBASE/builds/any/rootfs/$ONL_DEBIAN_SUITE/common/${ARCH}-onl-customer-packages.yml
 
 Multistrap:
   General:
