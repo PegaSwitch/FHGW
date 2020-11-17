@@ -32,48 +32,35 @@ static onlp_led_info_t linfo[] =
     {
         { LED_OID_SYSTEM_STATUS, "System Status LED", 0 },
           ONLP_LED_STATUS_PRESENT,
-          ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_ORANGE |
-          ONLP_LED_CAPS_ORANGE_BLINKING | ONLP_LED_CAPS_GREEN_BLINKING | ONLP_LED_CAPS_GREEN,
+          ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_RED |
+          ONLP_LED_CAPS_ORANGE | ONLP_LED_CAPS_ORANGE_BLINKING | 
+          ONLP_LED_CAPS_GREEN | ONLP_LED_CAPS_GREEN_BLINKING,
     },
     {
         { LED_OID_FAN_STATUS, "FAN Status LED", 0 },
           ONLP_LED_STATUS_PRESENT,
-          ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_ORANGE |
-          ONLP_LED_CAPS_ORANGE_BLINKING | ONLP_LED_CAPS_GREEN_BLINKING | ONLP_LED_CAPS_GREEN,
+          ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_RED |
+          ONLP_LED_CAPS_ORANGE | ONLP_LED_CAPS_ORANGE_BLINKING | 
+          ONLP_LED_CAPS_GREEN | ONLP_LED_CAPS_GREEN_BLINKING,
     },
     {
         { LED_OID_POWER_STATUS, "Power Status LED", 0 },
         ONLP_LED_STATUS_PRESENT,
-        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_ORANGE |
-        ONLP_LED_CAPS_ORANGE_BLINKING | ONLP_LED_CAPS_GREEN_BLINKING | ONLP_LED_CAPS_GREEN,
+        ONLP_LED_CAPS_ON_OFF | 
+        ONLP_LED_CAPS_ORANGE | ONLP_LED_CAPS_ORANGE_BLINKING | 
+        ONLP_LED_CAPS_GREEN | ONLP_LED_CAPS_GREEN_BLINKING,
     },
     {
         { LED_OID_SYSTEM_LOCATOR, "System Locator LED", 0 },
           ONLP_LED_STATUS_PRESENT,
-          ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_BLUE | ONLP_LED_CAPS_BLUE_BLINKING,
+          ONLP_LED_CAPS_ON_OFF | 
+          ONLP_LED_CAPS_BLUE | ONLP_LED_CAPS_BLUE_BLINKING,
     }
 };
 
 int
 onlp_ledi_init(void)
 {
-	int bus_no = 0;
-    /* Set PSoc Fan-Alert Enable */
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
-    onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_MCR1, 0x08, ONLP_I2C_F_FORCE);
-    onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR1, 0x0, ONLP_I2C_F_FORCE); /* system status & power status OK 	*/
-    onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR2, 0x12, ONLP_I2C_F_FORCE); /* system locator off & fan status OK	*/
-    /* 
-    LED_Force_On    00
-    SLED_EN         1
-    */
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_0;
-    onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_A, PEGATRON_FM_6609_BN_FF_I2C_CPLD_A_LEDCR2, 0x04, ONLP_I2C_F_FORCE);
-    
-    bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_2;
-    onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_C, PEGATRON_FM_6609_BN_FF_I2C_CPLD_C_MCR1, 0x08, ONLP_I2C_F_FORCE);
-    onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_C, PEGATRON_FM_6609_BN_FF_I2C_CPLD_C_ZQRSTR1, 0x55, ONLP_I2C_F_FORCE);
-    onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_C, PEGATRON_FM_6609_BN_FF_I2C_CPLD_C_ZQRSTR2, 0x55, ONLP_I2C_F_FORCE);
     /* Set LED to green */
     onlp_ledi_mode_set(LED_OID_SYSTEM_STATUS, ONLP_LED_MODE_GREEN);
     onlp_ledi_mode_set(LED_OID_FAN_STATUS, ONLP_LED_MODE_GREEN);
@@ -110,29 +97,31 @@ void Sys_Set_System_Status_LED(onlp_led_mode_t mode)
     uint8_t iout = 0;
 	int bus_no = 0;
 	
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
+	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH1;
     /* Get current
      */
     iout  = (uint8_t) onlp_i2c_readb(bus_no, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR1,
+    	FM_6609_BN_FF_CPLD_B, 
+    	FM_6609_BN_FF_CPLD_B_LEDCR1,
         ONLP_I2C_F_FORCE);
-    iout &= 0x1F;
+    iout &= 0x8F;
 
     if (mode == ONLP_LED_MODE_GREEN) {
-        iout |= (0 << 5);	
+        iout |= (1 << 4);	
     } else if(mode == ONLP_LED_MODE_ORANGE){
-        iout |= (1 << 5);
+        iout |= (2 << 4);
+    } else if(mode == ONLP_LED_MODE_RED){
+        iout |= (5 << 4);		
     } else if(mode == ONLP_LED_MODE_GREEN_BLINKING){
-        iout |= (3 << 5);
+        iout |= (3 << 4);
     } else if(mode == ONLP_LED_MODE_ORANGE_BLINKING){
-        iout |= (4 << 5);
+        iout |= (4 << 4);
     } else{
-        iout |= (2 << 5);
+        iout |= (0 << 4);
     }
 	onlp_i2c_writeb(bus_no, 
-		PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-		PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR1,
+		FM_6609_BN_FF_CPLD_B, 
+		FM_6609_BN_FF_CPLD_B_LEDCR1,
         iout, ONLP_I2C_F_FORCE);
 }
 
@@ -141,28 +130,30 @@ void Sys_Set_Fan_Status_LED(onlp_led_mode_t mode)
     uint8_t iout = 0;
 	int bus_no = 0;
 	
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
+	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH1;
     /* Get current */
     iout  = (uint8_t) onlp_i2c_readb(bus_no, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR2,
+    	FM_6609_BN_FF_CPLD_B, 
+    	FM_6609_BN_FF_CPLD_B_LEDCR1,
         ONLP_I2C_F_FORCE);
     iout &= 0xF8;
 
     if (mode == ONLP_LED_MODE_GREEN) {
-        iout |= (0 << 0);
-    } else if(mode == ONLP_LED_MODE_ORANGE){
         iout |= (1 << 0);
+    } else if(mode == ONLP_LED_MODE_ORANGE){
+        iout |= (2 << 0);
+    } else if(mode == ONLP_LED_MODE_RED){
+        iout |= (5 << 0);		
     } else if(mode == ONLP_LED_MODE_GREEN_BLINKING){
         iout |= (3 << 0);
     } else if(mode == ONLP_LED_MODE_ORANGE_BLINKING){
         iout |= (4 << 0);
     } else{
-        iout |= (2 << 0);
+        iout |= (0 << 0);
     }
 	onlp_i2c_writeb(bus_no, 
-		PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-		PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR2,
+		FM_6609_BN_FF_CPLD_B, 
+		FM_6609_BN_FF_CPLD_B_LEDCR1,
         iout, ONLP_I2C_F_FORCE);
 }
 
@@ -171,29 +162,29 @@ void Sys_Set_Power_Status_LED(onlp_led_mode_t mode)
     uint8_t iout = 0;
 	int bus_no = 0;
 	
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
+	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH1;
     /* Get current
      */
     iout  = (uint8_t) onlp_i2c_readb(bus_no, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR1,
+    	FM_6609_BN_FF_CPLD_B, 
+    	FM_6609_BN_FF_CPLD_B_LEDCR2,
         ONLP_I2C_F_FORCE);
-    iout &= 0xE3;
+    iout &= 0xF8;
 
     if (mode == ONLP_LED_MODE_GREEN) {
-        iout |= (0 << 2);
+        iout |= (1 << 0);
     } else if(mode == ONLP_LED_MODE_ORANGE){
-        iout |= (1 << 2);
+        iout |= (2 << 0);
     } else if(mode == ONLP_LED_MODE_GREEN_BLINKING){
-        iout |= (3 << 2);
+        iout |= (3 << 0);
     } else if(mode == ONLP_LED_MODE_ORANGE_BLINKING){
-        iout |= (4 << 2);
+        iout |= (4 << 0);
     } else{
-        iout |= (2 << 2);
+        iout |= (0 << 0);
     }
 	onlp_i2c_writeb(bus_no, 
-		PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-		PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR1,
+		FM_6609_BN_FF_CPLD_B, 
+		FM_6609_BN_FF_CPLD_B_LEDCR2,
         iout, ONLP_I2C_F_FORCE);
 }
 
@@ -202,25 +193,25 @@ void Sys_Set_System_Locator_LED(onlp_led_mode_t mode)
     uint8_t iout;
 	int bus_no = 0;
 	
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
+	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH1;
     /* Get current
      */
     iout  = (uint8_t) onlp_i2c_readb(bus_no, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-    	PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR2,
+    	FM_6609_BN_FF_CPLD_B, 
+    	FM_6609_BN_FF_CPLD_B_LEDCR2,
         ONLP_I2C_F_FORCE);
     iout &= 0xCF;
 
     if (mode == ONLP_LED_MODE_BLUE) {
-        iout |= (0 << 4);
+        iout |= (1 << 4);
     } else if(mode == ONLP_LED_MODE_BLUE_BLINKING){
         iout |= (2 << 4);
     } else{
-        iout |= (1 << 4);
+        iout |= (0 << 4);
     }
-        onlp_i2c_writeb(bus_no, 
-			PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 
-			PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_LEDCR2,
+    onlp_i2c_writeb(bus_no, 
+		FM_6609_BN_FF_CPLD_B, 
+		FM_6609_BN_FF_CPLD_B_LEDCR2,
         iout, ONLP_I2C_F_FORCE);
 }
 

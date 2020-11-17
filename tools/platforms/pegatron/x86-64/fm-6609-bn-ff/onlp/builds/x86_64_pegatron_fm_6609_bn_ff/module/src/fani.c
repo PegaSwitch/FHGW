@@ -47,10 +47,6 @@ static onlp_fan_info_t fan_info[] = {
     { { FAN_OID_FANB_INLET, "FANTRAY B Inlet", 0 }, ONLP_FAN_STATUS_PRESENT },
     { { FAN_OID_FANC_OUTLET, "FANTRAY C Outlet", 0 }, ONLP_FAN_STATUS_PRESENT },
     { { FAN_OID_FANC_INLET, "FANTRAY C Inlet", 0 }, ONLP_FAN_STATUS_PRESENT },
-    { { FAN_OID_FAND_OUTLET, "FANTRAY D Outlet", 0 }, ONLP_FAN_STATUS_PRESENT },
-    { { FAN_OID_FAND_INLET, "FANTRAY D Inlet", 0 }, ONLP_FAN_STATUS_PRESENT },
-    { { FAN_OID_FANE_OUTLET, "FANTRAY E Outlet", 0 }, ONLP_FAN_STATUS_PRESENT },
-    { { FAN_OID_FANE_INLET, "FANTRAY E Inlet", 0 }, ONLP_FAN_STATUS_PRESENT },
     { { FAN_OID_FAN_PSUA,  "PSU-A Fan", PSU_OID_PSUA }, ONLP_FAN_STATUS_PRESENT },
     { { FAN_OID_FAN_PSUB,  "PSU-B Fan", PSU_OID_PSUB }, ONLP_FAN_STATUS_PRESENT },
 };
@@ -71,12 +67,12 @@ Get_Sys_FAN_Status(onlp_fan_info_t* info, int fid)
     int istatus=0, fan_func_sel, fan_id;
 	int percent;
 	int bus_no;
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX1_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_3;
+	bus_no = FM_6609_BN_FF_I2C_MUX1_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH3;
 
     fan_id = (fid -1)/2;
     fan_func_sel = PEGA_FM_6609_BN_FF_I2C_FAN_STATUS | fan_id;
 
-    istatus  = onlp_i2c_readb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_MCU, fan_func_sel, ONLP_I2C_F_FORCE);
+    istatus  = onlp_i2c_readb(bus_no, FM_6609_BN_FF_MCU, fan_func_sel, ONLP_I2C_F_FORCE);
 
     if ( (istatus & 0x80) != 0x0 ) {
         info->status = ONLP_FAN_STATUS_FAILED;
@@ -95,11 +91,11 @@ Get_Sys_FAN_Status(onlp_fan_info_t* info, int fid)
         fan_func_sel = PEGA_FM_6609_BN_FF_I2C_FAN_RPM_INNER | fan_id;
     }
 
-    percent  = onlp_i2c_readb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_MCU, PEGA_FM_6609_BN_FF_I2C_FAN_PWM, ONLP_I2C_F_FORCE);
+    percent  = onlp_i2c_readb(bus_no, FM_6609_BN_FF_MCU, PEGA_FM_6609_BN_FF_I2C_FAN_PWM, ONLP_I2C_F_FORCE);
     info->caps |= ONLP_FAN_CAPS_GET_PERCENTAGE;
 	info->percentage = percent;
 
-    data = onlp_i2c_readw(bus_no, PEGATRON_FM_6609_BN_FF_I2C_MCU, fan_func_sel, ONLP_I2C_F_FORCE);
+    data = onlp_i2c_readw(bus_no, FM_6609_BN_FF_MCU, fan_func_sel, ONLP_I2C_F_FORCE);
     info->rpm = data;
     info->caps |= ONLP_FAN_CAPS_SET_PERCENTAGE;
 
@@ -130,16 +126,12 @@ int onlp_fani_percentage_set(onlp_oid_t id, int p)
     case FAN_ID_FANB_INLET:
     case FAN_ID_FANC_OUTLET:
     case FAN_ID_FANC_INLET:
-    case FAN_ID_FAND_OUTLET:
-    case FAN_ID_FAND_INLET:
-    case FAN_ID_FANE_OUTLET:
-    case FAN_ID_FANE_INLET:
-        for(i=FAN_ID_FANA_OUTLET; i<=FAN_ID_FANE_INLET; i++) {
+        for(i=FAN_ID_FANA_OUTLET; i<=FAN_ID_FANC_INLET; i++) {
             f = &fan_info[fid];
             f->percentage = p;
         } 
-		bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX1_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_3;
-		onlp_i2c_writeb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_MCU, PEGA_FM_6609_BN_FF_I2C_FAN_PWM, p, ONLP_I2C_F_FORCE);
+		bus_no = FM_6609_BN_FF_I2C_MUX1_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH3;
+		onlp_i2c_writeb(bus_no, FM_6609_BN_FF_MCU, PEGA_FM_6609_BN_FF_I2C_FAN_PWM, p, ONLP_I2C_F_FORCE);
         break;
     default:
         rv = ONLP_STATUS_E_INVALID;
@@ -158,18 +150,18 @@ Get_Power_FAN_Status(onlp_fan_info_t* info, int fid)
     int is_present;
 	int bus_no;
 	
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
-    data  = onlp_i2c_readb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B_PSR, ONLP_I2C_F_FORCE);
+	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH1;
+    data  = onlp_i2c_readb(bus_no, FM_6609_BN_FF_CPLD_B, FM_6609_BN_FF_CPLD_B_PSR, ONLP_I2C_F_FORCE);
 
     switch (fid) {
     case FAN_ID_FAN_PSUA:
-        channel = PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_0;
-        psu_addr = PEGATRON_FM_6609_BN_FF_PSU_A;
+        channel = FM_6609_BN_FF_I2C_MUX_CH0;
+        psu_addr = FM_6609_BN_FF_PSU_A;
         is_present = (((data & 0x08) >> 3) == 0) ? 1 : 0; /* 0000 0010 ==> check bit_1 equals 0 or not! */
         break;
     case FAN_ID_FAN_PSUB:
-        channel = PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
-        psu_addr = PEGATRON_FM_6609_BN_FF_PSU_B;
+        channel = FM_6609_BN_FF_I2C_MUX_CH1;
+        psu_addr = FM_6609_BN_FF_PSU_B;
         is_present = (((data & 0x04) >> 2) == 0) ? 1 : 0; /* 0000 0001 ==> check bit_0 equals 0 or not! */
         break;
     default:
@@ -185,8 +177,8 @@ Get_Power_FAN_Status(onlp_fan_info_t* info, int fid)
         goto error;
     }
 
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX1_BUS_START_FROM + channel;
-    data  = onlp_i2c_readw(bus_no, psu_addr, 0x88, ONLP_I2C_F_FORCE);
+	bus_no = FM_6609_BN_FF_I2C_MUX1_BUS_START_FROM + channel;
+    data  = onlp_i2c_readw(bus_no, psu_addr, PMBUS_VOLTAGE_IN_REG, ONLP_I2C_F_FORCE);
     if (data <= 0) {
         info->status = ONLP_FAN_STATUS_FAILED;
         rv = ONLP_STATUS_E_INTERNAL;
@@ -196,7 +188,7 @@ Get_Power_FAN_Status(onlp_fan_info_t* info, int fid)
     info->status = ONLP_FAN_STATUS_PRESENT;
 
     rv = ONLP_STATUS_OK;
-    data  = onlp_i2c_readw(bus_no, psu_addr, 0x90, ONLP_I2C_F_FORCE);
+    data  = onlp_i2c_readw(bus_no, psu_addr, PMBUS_FANSPEED1_REG, ONLP_I2C_F_FORCE);
     val_1 = (data & 0xf800) >> 11;
     if (val_1 & 0x10) {
         val_1 = (~val_1 & 0x1f) + 0x1;
@@ -225,10 +217,6 @@ onlp_fani_info_get(onlp_oid_t id, onlp_fan_info_t *info)
         case FAN_ID_FANB_INLET:
         case FAN_ID_FANC_OUTLET:
         case FAN_ID_FANC_INLET:
-        case FAN_ID_FAND_OUTLET:
-        case FAN_ID_FAND_INLET:
-        case FAN_ID_FANE_OUTLET:
-        case FAN_ID_FANE_INLET:
         f = &fan_info[fid];
         rv = Get_Sys_FAN_Status(f, fid);
         /* Sync local info to incoming pointer */

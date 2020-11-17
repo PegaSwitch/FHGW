@@ -25,6 +25,7 @@
 #include <onlp/platformi/sysi.h>
 #include <onlp/platformi/fani.h>
 #include <onlp/platformi/ledi.h>
+#include <onlp/platformi/psui.h>
 #include <onlp/platformi/thermali.h>
 #include <onlplib/crc32.h>
 #include "x86_64_pegatron_fm_6609_bn_ff_int.h"
@@ -33,6 +34,7 @@
 #include <onlplib/i2c.h>
 
 #define SW_VERSION "0.0.0.1"
+
 /**
  * @brief Return the name of the the platform implementation.
  * @notes This will be called PRIOR to any other calls into the
@@ -56,7 +58,7 @@
  */
 const char *onlp_sysi_platform_get(void)
 {
-    return "x86-64-pegatron-fm-6256-bn-f-r0";
+    return "x86-64-pegatron-fm-6609-bn-ff-r0";
 }
 
 /**
@@ -82,7 +84,7 @@ int onlp_sysi_onie_data_get(uint8_t** data, int* size)
     int i=0;
 	int bus_no = 0;
 
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_3;
+	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH3;
     do {
         //if(i++ > 0xff)
         //  break;
@@ -124,25 +126,25 @@ int onlp_sysi_oids_get(onlp_oid_t* table, int max)
     int i;
 
     /* PSUs Item */
-    for (i=1; i < PSU_ID_END; i++)
+    for (i=1; i <= (CHASSIS_PSU_COUNT+CHASSIS_VRM_COUNT); i++)
     {
         *e++ = ONLP_PSU_ID_CREATE(i);
     }
 
     /* LEDs Item */
-    for (i=1; i < LED_ID_END; i++)
+    for (i=1; i <= CHASSIS_LED_COUNT; i++)
     {
         *e++ = ONLP_LED_ID_CREATE(i);
     }
 
      /* THERMALs Item */
-    for (i=1; i< THERMAL_ID_END; i++)
+    for (i=1; i<= CHASSIS_THERMAL_COUNT; i++)
     {
         *e++ = ONLP_THERMAL_ID_CREATE(i);
     }
 
     /* Fans Item */
-    for (i=1; i< FAN_ID_END; i++)
+    for (i=1; i<= CHASSIS_FAN_COUNT; i++)
     {
         *e++ = ONLP_FAN_ID_CREATE(i);
     }
@@ -156,24 +158,15 @@ int onlp_sysi_oids_get(onlp_oid_t* table, int max)
 int onlp_sysi_platform_info_get(onlp_platform_info_t* pi)
 {
     int data;
-    int cpld_a_ver=0;
     int cpld_b_ver=0;
-    int cpld_c_ver=0;
     int cpld_d_ver=0;
 	int bus_no = 0;
-
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_0;
-    data = onlp_i2c_readb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_A, 0x00, ONLP_I2C_F_FORCE);
-    cpld_a_ver = data & 0x0F;	
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_1;
-	data = onlp_i2c_readb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_B, 0x00, ONLP_I2C_F_FORCE);
-    cpld_b_ver = data & 0x0F;	
-	bus_no = PEGATRON_FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + PEGATRON_FM_6609_BN_FF_I2C_MUX_CHANNEL_2;
-	data = onlp_i2c_readb(bus_no, PEGATRON_FM_6609_BN_FF_I2C_CPLD_C, 0x00, ONLP_I2C_F_FORCE);
-    cpld_c_ver = data & 0x0F;
-    data = onlp_i2c_readb(PEGATRON_FM_6609_BN_FF_I2C_BUS1, PEGATRON_FM_6609_BN_FF_I2C_CPLD_D, 0x00, ONLP_I2C_F_FORCE);
+	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH1;
+	data = onlp_i2c_readb(bus_no, FM_6609_BN_FF_CPLD_B, 0x00, ONLP_I2C_F_FORCE);
+    cpld_b_ver = data & 0x0F;
+    data = onlp_i2c_readb(FM_6609_BN_FF_I2C_BUS1, FM_6609_BN_FF_CPLD_D, 0x00, ONLP_I2C_F_FORCE);
     cpld_d_ver = data & 0x0F;
-    pi->cpld_versions = aim_fstrdup("%d.%d.%d.%d", cpld_a_ver, cpld_b_ver, cpld_c_ver, cpld_d_ver);
+    pi->cpld_versions = aim_fstrdup("%d.%d", cpld_b_ver, cpld_d_ver);
     pi->other_versions = aim_fstrdup("%s", SW_VERSION);
     return ONLP_STATUS_OK;
 }
@@ -213,15 +206,50 @@ int onlp_sysi_platform_manage_fans(void)
     return 0;
 }
 #endif
+static int start_led_manual_mode(int enable)
+{		
+	FILE *fp;
+	char buf[32]={0};
+	char *file = "/var/led_manual";
+	
+	fp = fopen(file, "w");
+	if(fp) {
+		sprintf(buf, "%d", enable);
+		fwrite(buf, 1, sizeof(buf), fp);
+		fclose(fp);
+	}
+	return 0;
+}
+
+static int get_led_manual_mode_state(void)
+{
+	FILE *fp;
+	int enable = 0;
+	char buf[32]={0};
+	char *file = "/var/led_manual";
+	fp = fopen(file, "r");
+	if(fp) {
+		fread(buf, sizeof(buf), 1, fp);
+		enable = atoi(buf);
+		fclose(fp);
+	}
+	return enable;
+}
 
 int onlp_sysi_platform_manage_leds(void)
 {
     int i;
     onlp_fan_info_t info;
+	onlp_psu_info_t psuinfo;
     int fan_id;
 	int fail_fans = 0;
+	int psu_fail = 0;
+	int psu_id;
 
-    for (i = 0; i <= FAN_ID_FANE_INLET; i++) {
+	//Into led test mode, ignore led status polling task.
+	if(get_led_manual_mode_state())
+		return 0;
+    for (i = 0; i <= CHASSIS_FAN_COUNT; i++) {
         fan_id = ONLP_FAN_ID_CREATE(i);
         memset(&info, 0, sizeof(onlp_fan_info_t));
         if(onlp_fani_info_get(fan_id, &info) != ONLP_STATUS_OK) {
@@ -235,15 +263,48 @@ int onlp_sysi_platform_manage_leds(void)
         }
     }
 	if(fail_fans == 0)
-		onlp_ledi_mode_set(LED_ID_FAN_STATUS, ONLP_LED_MODE_GREEN);
-	else {	
-		if(fail_fans == 1)
-			onlp_ledi_mode_set(LED_ID_FAN_STATUS, ONLP_LED_MODE_ORANGE);
-		else if(fail_fans > 2) {
-			//FIXME: should indicate red solid, but current led doesn't support red solid.
-			onlp_ledi_mode_set(LED_ID_FAN_STATUS, ONLP_LED_MODE_ORANGE);
-		}
-	}
+		onlp_ledi_mode_set(LED_OID_FAN_STATUS, ONLP_LED_MODE_GREEN);
+	else
+		onlp_ledi_mode_set(LED_OID_FAN_STATUS, ONLP_LED_MODE_ORANGE);
+
+	// config psu status led after check psu current status.
+    for (i = 0; i <= CHASSIS_PSU_COUNT; i++) {
+        psu_id= ONLP_PSU_ID_CREATE(i);
+        memset(&psuinfo, 0, sizeof(onlp_psu_info_t));
+		onlp_psui_info_get(psu_id, &psuinfo);
+		if(psuinfo.status == ONLP_PSU_STATUS_FAILED)
+			psu_fail++;
+    }
+	if(psu_fail == 0)
+		onlp_ledi_mode_set(LED_OID_POWER_STATUS, ONLP_LED_MODE_GREEN);
+	else 			
+		onlp_ledi_mode_set(LED_OID_POWER_STATUS, ONLP_LED_MODE_ORANGE_BLINKING);
     return 0;
+}
+
+/**
+ * @brief Builtin platform debug tool.
+ */
+int onlp_sysi_debug(aim_pvs_t* pvs, int argc, char** argv)
+{
+	if(argc == 0) {		
+        printf("\nUsage: onlpdump debug [OPTION]\n");
+        printf("led ctrl_test            : into led control test mode.\n");
+        printf("led finish_test          : Finish led control test mode.\n");
+		return 0;
+	} else if(argc == 2) {
+		if(!strcmp(argv[0], "led")) {
+			if(!strcmp(argv[1], "ctrl_test")) {
+				printf("Start led control test mode.\n");
+				start_led_manual_mode(1);
+			} else if(!strcmp(argv[1], "finish_test")) {	
+				printf("Finish led control test mode.\n");
+				start_led_manual_mode(0);
+			} else
+				;
+		}
+	} else
+		;
+	return 0;
 }
 
