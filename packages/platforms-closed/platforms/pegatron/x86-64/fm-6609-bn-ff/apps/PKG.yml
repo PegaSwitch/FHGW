@@ -16,5 +16,6 @@ packages:
     summary: ONL Platform Manufacture Package for the $basename
 
     files:
+      - builds/fhgw_fpga_app: /root/
 
     changelog: Changes
