@@ -21,19 +21,19 @@ int32_t fhgw_fpga_polling_for_cal_bit (uint32_t xcvr_base_addr, uint32_t reg_num
     int32_t return_value = 0;
 
     //Calibration Register polling : CHK 204 and 207
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
 
     if (bit_num == 7) {
         while (((rdata0 & 0x80) != 0x80) && (i < iteration)) {
             //printk ("INFO: Polling for xcvr calibration register: %lx, configuration bit 7, read data: %ld\n", reg_num, rdata0);
             i = i + 1;
-            rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+            rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
         }
     } else {
         while (((rdata0 & 0x01) != 0x01) && (i < iteration)) {
             //printk ("INFO: Polling for xcvr calibration register: %lx, configuration bit 0, read data: %ld\n", reg_num, rdata0);
             i = i + 1;
-            rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+            rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
         }
     }
 
@@ -53,19 +53,19 @@ int32_t fhgw_fpga_polling_for_cfg_bit (uint32_t xcvr_base_addr, uint32_t reg_num
     int32_t i = 0;
     int32_t return_value = 0;
 
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
 
     if (bit_num == 7) {
         while (((rdata0 & 0x80) != 0x80) && (i < iteration)) {
             //    printk ("INFO: Polling for xcvr register: %lx, configuration bit 7, read data: %ld\n", reg_num, rdata0);
             i = i + 1;
-            rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+            rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
         }
     } else {
         while (((rdata0 & 0x01) != 0x00) && (i < iteration)) {
             //    printk ("INFO: Polling for xcvr register: %lx, configuration bit 0, read data: %ld\n", reg_num, rdata0);
             i = i + 1;
-            rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+            rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
         }
     }
 
@@ -85,12 +85,12 @@ int32_t fhgw_fpga_polling_for_cfg_value_compare (uint32_t xcvr_base_addr, uint32
     int32_t i = 0;
     int32_t return_value = 0;
 
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
 
     while ((rdata0 != compare_value) && (i < iteration)) {
        // printk ("INFO: Polling for xcvr register: %lx, configuration bit 0, read data: %ld\n", reg_num, rdata0);
         i = i + 1;
-        rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+        rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
     }
 
     if (i == iteration) {
@@ -109,18 +109,18 @@ int32_t fhgw_fpga_polling_for_calibration_status (uint32_t xcvr_base_addr, uint3
     int32_t i = 0;
     int32_t return_value = 0;
 
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
     //printk ("INFO: rdata0 for xcvr register: 0x%lx, configuration bit 0, read data: 0x%lx\n", reg_num, rdata0);
 
     while (((rdata0 & 0x01) != 0x00) && (i < iteration)) {
         //printk ("INFO: Polling for xcvr register: 0x%lx, configuration bit 0, read data: 0x%lx for %d -th time\n", reg_num, rdata0, i);
         i = i + 1;
         // interupt required before each read to 0x88 
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0xb);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x26);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x1);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0xb);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x26);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x1);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
         // Polling PMA register
         //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
         //    Addr: 8A,bit7: cfg_core_int_in_prog_assert: Expect 1
@@ -130,7 +130,7 @@ int32_t fhgw_fpga_polling_for_calibration_status (uint32_t xcvr_base_addr, uint3
         //   Addr: 8B,bit0: cfg_core_int_in_progress: Expect 0
         return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x8B, 0);
 
-        rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, reg_num);
+        rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + reg_num);
     }
 
     if (i == iteration) {
@@ -148,12 +148,12 @@ int32_t fhgw_fpga_serdes_loop_off (uint32_t xcvr_base_addr)
     int32_t return_value = 0;
 
     // Disable the PMA serial loopback by using PMA attribute code 0x0008
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x1);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x8);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -169,7 +169,7 @@ int32_t fhgw_fpga_serdes_loop_off (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -179,12 +179,12 @@ int32_t fhgw_fpga_serdes_loop_on (uint32_t xcvr_base_addr)
     int32_t return_value = 0;
 
     // Enable the PMA serial loopback by using PMA attribute code 0x0008
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x1);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x1);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x8);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -200,7 +200,7 @@ int32_t fhgw_fpga_serdes_loop_on (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -216,11 +216,11 @@ int32_t fhgw_fpga_general_calibration (uint32_t xcvr_base_addr, uint16_t loopbac
     }
 
     //2 set for zero effort calibration
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x18);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x1);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x2C);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x18);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x2C);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     //  Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -232,13 +232,13 @@ int32_t fhgw_fpga_general_calibration (uint32_t xcvr_base_addr, uint16_t loopbac
     return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x8B, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x6C);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x6C);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -254,16 +254,16 @@ int32_t fhgw_fpga_general_calibration (uint32_t xcvr_base_addr, uint16_t loopbac
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     //3 start calibration
     //printk ("INFO: Receiver Tuning Controls\n");
     // Disable the PMA by using PMA attribute code 0x0001
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x1); //Run initial adaptive equalization
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0xa);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x1); //Run initial adaptive equalization
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0xa);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -279,16 +279,16 @@ int32_t fhgw_fpga_general_calibration (uint32_t xcvr_base_addr, uint16_t loopbac
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     //4 Read Receiver Tuning Parameters, calibration status
     //printk ("INFO: calibration status check\n");
     // Disable the PMA by using PMA attribute code 0x0001
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0xb);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x26);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x1);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0xb);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x26);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -300,7 +300,7 @@ int32_t fhgw_fpga_general_calibration (uint32_t xcvr_base_addr, uint16_t loopbac
     return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x8B, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return_value += fhgw_fpga_polling_for_calibration_status (xcvr_base_addr, 0x88); // check for bit 0;to indicate calibration successful.
 
@@ -312,10 +312,10 @@ int32_t fhgw_fpga_pma_analog_reset (uint32_t xcvr_base_addr)
     int32_t return_value = 0;
   
     //Reset the internal controller inside the PMA because the REFCLK source changed
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x200, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x201, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x202, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x203, 0x81);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x200, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x201, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x202, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x203, 0x81);
     return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x207, 7);
 
     return return_value;
@@ -327,26 +327,26 @@ int32_t fhgw_fpga_calibration_pma_configuration_load (uint32_t xcvr_base_addr, u
 
     if (loopback_mode == 1) {
         //1. set_operation_mode , Internal Serial LB
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x200, 0x1F);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x201, 0x00);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x202, 0x00);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x203, 0x93);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x200, 0x1F);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x201, 0x00);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x202, 0x00);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x203, 0x93);
         //printk ("INFO: Set operation mode status check start..\n");
         return_value += fhgw_fpga_polling_for_cal_bit (xcvr_base_addr, 0x207, 7);
         return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x207, 0);
     } else {
         //set_operation_mode , External data source
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x200, 0x1E);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x201, 0x00);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x202, 0x00);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x203, 0x93);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x200, 0x1E);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x201, 0x00);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x202, 0x00);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x203, 0x93);
         //printk ("INFO: Set operation mode status check start..\n");
         return_value += fhgw_fpga_polling_for_cal_bit (xcvr_base_addr, 0x207, 7);
         return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x207, 0);
     };
 
     //2. Load PMA configuration
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x40143, 0x80);  // load default configuration
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x40143, 0x80);  // load default configuration
     //udelay(100);
 
     //3. Read_load PMA configuration status
@@ -356,28 +356,28 @@ int32_t fhgw_fpga_calibration_pma_configuration_load (uint32_t xcvr_base_addr, u
     if (loopback_mode == 1) {
         // Internal Serial LB, disable PRBS 
         //4.PMA configuration_channel
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x200, 0xF2);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x201, 0x03); // internal loopback
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x202, 0x01);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x203, 0x96);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x200, 0xF2);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x201, 0x03); // internal loopback
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x202, 0x01);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x203, 0x96);
 
         return_value += fhgw_fpga_polling_for_cal_bit (xcvr_base_addr, 0x207, 7);
         return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x207, 0);
     } else { // External Loopback, disable PRBS 
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x200, 0xF2);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x201, 0x01); // external loopback
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x202, 0x01);
-        FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x203, 0x96);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x200, 0xF2);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x201, 0x01); // external loopback
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x202, 0x01);
+        FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x203, 0x96);
 
         return_value += fhgw_fpga_polling_for_cal_bit (xcvr_base_addr, 0x207, 7);
         return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x207, 0);
     }
 
     //5.check_PMA configuration_stat
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x200, 0x01);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x201, 0x00);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x202, 0x00);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x203, 0x97);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x200, 0x01);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x201, 0x00);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x202, 0x00);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x203, 0x97);
     //printk ("INFO: PMA Calibration status check start..\n");
     return_value += fhgw_fpga_polling_for_cal_bit (xcvr_base_addr, 0x207, 7);
     return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x207, 0); 
@@ -390,11 +390,11 @@ int32_t fhgw_fpga_serdes_disable (uint32_t xcvr_base_addr)
     int32_t return_value = 0;
 
     // Disable the PMA by using PMA attribute code 0x0001
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x1);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -410,7 +410,7 @@ int32_t fhgw_fpga_serdes_disable (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -420,12 +420,12 @@ int32_t fhgw_fpga_serdes_enable (uint32_t xcvr_base_addr)
     int32_t return_value = 0;
 
     // Enable the PMA by using PMA attribute code 0x0001
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x7);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x1);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x7);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -441,7 +441,7 @@ int32_t fhgw_fpga_serdes_enable (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -450,12 +450,12 @@ int32_t fhgw_fpga_rx_phase_slip (uint32_t xcvr_base_addr)
 {
     int32_t return_value = 0;
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x9C);  //'d28 for NRZ Mode: BitWidth=32 PhaseSlip=28(32-4), bit[7]=1
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0xE);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x9C);  //'d28 for NRZ Mode: BitWidth=32 PhaseSlip=28(32-4), bit[7]=1
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0xE);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -470,7 +470,7 @@ int32_t fhgw_fpga_rx_phase_slip (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x88, 14);
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -479,12 +479,12 @@ int32_t fhgw_fpga_rx_phase_slip_low_speed (uint32_t xcvr_base_addr)
 {
     int32_t return_value = 0;
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0); 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x90);  //'d16 for NRZ Mode: BitWidth=20 PhaseSlip=16(20-4), bit[7]=1
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0xE);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0); 
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x90);  //'d16 for NRZ Mode: BitWidth=20 PhaseSlip=16(20-4), bit[7]=1
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0xE);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -499,7 +499,7 @@ int32_t fhgw_fpga_rx_phase_slip_low_speed (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x88, 14);
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -508,12 +508,12 @@ int32_t fhgw_fpga_swith_pma_uc_clock_1 (uint32_t xcvr_base_addr)
 {
     int32_t return_value = 0;
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x3);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x30);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x3);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x30);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -529,7 +529,7 @@ int32_t fhgw_fpga_swith_pma_uc_clock_1 (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0); 
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -538,12 +538,12 @@ int32_t fhgw_fpga_swith_pma_uc_clock_0 (uint32_t xcvr_base_addr)
 {
     int32_t return_value = 0;
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x30);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x30);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
 
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     //  Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -559,7 +559,7 @@ int32_t fhgw_fpga_swith_pma_uc_clock_0 (uint32_t xcvr_base_addr)
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0); 
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -568,11 +568,11 @@ int32_t fhgw_fpga_tx_rx_width_mode (uint32_t xcvr_base_addr, uint32_t width_mode
 {
     int32_t return_value = 0;
     
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr,0x84,width_mode);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr,0x85,0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr,0x86,0x14);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr,0x87,0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr,0x90,0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr +0x84,width_mode);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr +0x85,0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr +0x86,0x14);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr +0x87,0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr +0x90,0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -588,7 +588,7 @@ int32_t fhgw_fpga_tx_rx_width_mode (uint32_t xcvr_base_addr, uint32_t width_mode
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     return return_value;
 }
@@ -676,9 +676,9 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     //2 REFCLK SEL SET
     // EC[3:0] Select reference clocks [0-8] muxed onto refclkin_in_A
     // EE[7:4] Selects which reference clock [0-8] is mapped to refclk1 in the Native PHY IP core
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xEE); //[7:4] refclk1 lookup register
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xEE); //[7:4] refclk1 lookup register
     wdata = ((rdata0 >> 4) & 0xFFFFFF0F) | 0x0; // {4'b0000,rdata0[7:4]}
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xEC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xEC, wdata);
     
     //3. Switch PMA uC Clock to XCVR-Refclk 0
     fhgw_fpga_swith_pma_uc_clock_0 (xcvr_base_addr);
@@ -688,7 +688,7 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     fhgw_fpga_pma_analog_reset (xcvr_base_addr);
     
     // changing reference clock can cause glitch. set 0x200[0] to 1 to reset the PMA configuration/calibration state machine
-    //FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x200, 0x1);
+    //FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x200, 0x1);
     //  Verify that 0x204[0] de-asserts to indicate that the state machine has been reset successfully..
     //   Addr: 204,bit0: Expect 0
     //return_value += fhgw_fpga_polling_for_cfg_bit (xcvr_base_addr, 0x204, 0);
@@ -774,11 +774,11 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     //=============================== PMA CONFIG ===============================
     
     // tx bit/refclk ratio for 24G
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x84);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x84);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
     
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -794,14 +794,14 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
     
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
     
     // rx bit/refclk ratio for 24G
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x84);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x6);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x84);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x6);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
     
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -817,7 +817,7 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
     
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
     
     // set PMA tx/rx width mode , 32bits
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x55);
@@ -856,9 +856,9 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     //2. Reference clock switch
     // EC[3:0] Select reference clocks [0-8] muxed onto refclkin_in_A
     // EE[7:4] Selects which reference clock [0-8] is mapped to refclk1 in the Native PHY IP core
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xEE); //[3:0] refclk0 lookup register
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xEE); //[3:0] refclk0 lookup register
     wdata = (rdata0 & 0xFFFFFF0F) | 0x0; // {4'b0000,readdata[3:0]}
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xEC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xEC, wdata);
 
     //3. Switch PMA uC Clock to XCVR-Refclk 0
     fhgw_fpga_swith_pma_uc_clock_0 (xcvr_base_addr);
@@ -934,11 +934,11 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     //============================== PMA CONFIG ================================
 
     // tx bit/refclk ratio for 24G
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0xA5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0xA5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -954,14 +954,14 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     // rx bit/refclk ratio for 24G
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0xA5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x6);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0xA5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x6);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -977,7 +977,7 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     // set PMA tx/rx width mode , 32bits
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x55);
@@ -1016,9 +1016,9 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     //2. REFCLK SEL SET
     // EC[3:0] Select reference clocks [0-8] muxed onto refclkin_in_A
     // EE[7:4] Selects which reference clock [0-8] is mapped to refclk1 in the Native PHY IP core
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xEE); //[7:4] refclk1 lookup register
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xEE); //[7:4] refclk1 lookup register
     wdata = ((rdata0 >> 4) & 0xFFFFFF0F) | 0x0; // {4'b0000,rdata0[7:4]}
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xEC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xEC, wdata);
 
     //3. Switch PMA uC Clock to XCVR-Refclk 0
     fhgw_fpga_swith_pma_uc_clock_0 (xcvr_base_addr);
@@ -1061,45 +1061,45 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     // ============================ PMA config ===================================
     // xcvrif_ctrl0
     // cfg_tx_data_in_sel [4:2] 001  ->    000
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x4);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x4);
     wdata = (rdata0 & 0xFFFFFFE3) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x4, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x4);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x4, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x4);
 
     // xcvrif_ctrl0
     // cfg_clk_en_fec_d2_tx [13]    1  - >   0
     // cfg_clk_en_pcs_d2_tx [12]    0  - >   1
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x5);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x5);
     wdata = (rdata0 & 0xFFFFFFCF) | 0x10;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x5, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x5, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x5);
 
     // xcvrif_ctrl0
     // cfg_rx_fifo_clk_sel [30:29] 0 -> 2
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x7);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x7);
     wdata = (rdata0 & 0xFFFFFF9F) | 0x40;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x7, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x7);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x7, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x7);
 
 	//cfg_rx_bit_counter_rollover 13'd5248 (13'h1480) -> 13'd6304 (13'h18A0) (FEC-->Non-FEC)
     //0x34 [3:0] rx bit counter serializations factor : 11 = count by 32, 10=count by 20
 	// Bit [16:4]
-	rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x34);
+	rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x34);
 	wdata = (rdata0 & 0xFFFFFF0F) | 0x3;
-	FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x34, wdata);
+	FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x34, wdata);
 
-	rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x35);
+	rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x35);
 	wdata = (rdata0 & 0xFFFFFF00) | 0x8A;
-	FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x35, wdata);
+	FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x35, wdata);
 
-	rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x36);
+	rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x36);
 	wdata = (rdata0 & 0xFFFFFFFE) | 0x1;
-	FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x36, wdata);
+	FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x36, wdata);
     
  	// RXBIT CNTR PMA [7] = 1  for nofec
-	rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x37);
+	rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x37);
 	wdata = (rdata0 & 0xFFFFFF7F) | 0x80;
-	FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x37, wdata);
+	FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x37, wdata);
  
     // ============================ EHIP CONFIG ===================================
 
@@ -1172,11 +1172,11 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     //================================= PMA CONFIG =================================
 
     // tx bit/refclk ratio for 10G (Based on 184.32MHz ref clk
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x37);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x37);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
     // read_xcvr_user_cfgcsr_reg(xcvr_base_addr, 0x84, 1, 0x37);
 
     // Polling PMA register
@@ -1193,14 +1193,14 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     // rx bit/refclk ratio for 10G (Based on 184.32MHz ref clk
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x37);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x6);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x37);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x6);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
     // read_xcvr_user_cfgcsr_reg(xcvr_base_addr, 0x84, 1, 0x37);
 
     // Polling PMA register
@@ -1217,7 +1217,7 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     // set PMA tx/rx width mode , 32bits
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x55);
@@ -1258,9 +1258,9 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
     //2. REFCLK SEL SET
     // EC[3:0] Select reference clocks [0-8] muxed onto refclkin_in_A
     // EF[3:0] Selects which reference clock [0-8] is mapped to refclk2 in the Native PHY IP core
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xEF); //[3:0] refclk2 lookup register
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xEF); //[3:0] refclk2 lookup register
     wdata = (rdata0 & 0xFFFFFF0F) | 0x0; // {4'b0000,rdata0[3:0]}
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xEC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xEC, wdata);
 
     //3. Switch PMA uC Clock to XCVR-Refclk 0
     fhgw_fpga_swith_pma_uc_clock_0 (xcvr_base_addr);
@@ -1273,241 +1273,241 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
     // ------------------------- Reconfig to CPRI 9p8g -------------------------
 
     // AIB CLOCK1 & AIB CLOCK2 Select
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x322);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x322);
     wdata = (rdata0 & 0xFFFFFFF0) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x322, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x322, wdata);
 
     // RX FIFO STOP READ & RX FIFO PEMPTY
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x313);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x313);
     wdata = (rdata0 & 0xFFFFFF80) | 0x44;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x313, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x313, wdata);
 
     // RX FIFO POWER MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x31A);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x31A);
     wdata = (rdata0 & 0xFFFFFFE3) | 0x1C;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x31A, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x31A, wdata);
 
     // RX FIFO FULL Threshold
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x312);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x312);
     wdata = (rdata0 & 0xFFFFFFC0) | 0x3F;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x312, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x312, wdata);
 
     // RX FIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x315);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x315);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x315, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x315, wdata);
 
     // RX FIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x314);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x314);
     wdata = (rdata0 & 0xFFFFFFC0) | 0x14;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x314, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x314, wdata);
 
     // TX AIB CLK1 SEL & TX AIB CLK2 SEL & TX FIFO RD CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x30D);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x30D);
     wdata = (rdata0 & 0xFFFFFF03) | 0x14;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x30D, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x30D, wdata);
 
     // TX FIFO STOP RD & TX FIFO STOP WR
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x302);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x302);
     wdata = (rdata0 & 0xFFFFFF3F) | 0xC0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x302, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x302, wdata);
 
     // TX GB TX IDWIDTH & TX GB TX ODWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x306);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x306);
     wdata = (rdata0 & 0xFFFFFFC1) | 0x2A;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x306, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x306, wdata);
 
     // HIP OSC CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x30E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x30E);
     wdata = (rdata0 & 0xFFFFFF7F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x30E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x30E, wdata);
 
     // TX PHCOMP RD SEL & TX TXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x301);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x301);
     wdata = (rdata0 & 0xFFFFFF00) | 0x5E;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x301, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x301, wdata);
 
     // TXFIFO POWER MODE & TX TXFIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x303);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x303);
     wdata = (rdata0 & 0xFFFFFF00) | 0xF2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x303, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x303, wdata);
 
     // TX TXFIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x300);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x300);
     wdata = (rdata0 & 0xFFFFFF1F) | 0xA0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x300, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x300, wdata);
 
     // DCC CSR EN FSM
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x3C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x3C);
     wdata = (rdata0 & 0xFFFFFFFD) | 0x2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x3C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x3C, wdata);
 
     // RB CONT CAL & RB DCC BYP 7 RB DCC EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x38);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x38);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x6;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x38, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x38, wdata);
 
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x36);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x36);
     wdata = (rdata0 & 0xFFFFFFFE) | 0x1;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x36, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x36, wdata);
 
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x35);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x35);
     wdata = (rdata0 & 0xFFFFFF00) | 0x48;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x35, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x35, wdata);
 
     // RX BIT COUNTER ROLLOVER & SEL BIT COUNTER ADDER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x34);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x34);
     wdata = (rdata0 & 0xFFFFFF0C) | 0xC2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x34, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x34, wdata);
 
     // RXBIT CONTR PMA
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x37);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x37);
     wdata = (rdata0 & 0xFFFFFF7F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x37, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x37, wdata);
 
     // EN DIRECT TX & EN FEC D2 TX & EN TX GBX & TX ML SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x5);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x5);
     wdata = (rdata0 & 0xFFFFFF58) | 0x83;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x5, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x5, wdata);
 
     // EN FIFO RD RX & RX FIFO CLK SEL & RX ML SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x7);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x7);
     wdata = (rdata0 & 0xFFFFFF85) | 0x68;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x7, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x7, wdata);
 
     // RX GB ODWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xE);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xE);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xE, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xE, wdata);
 
     // RX SH LOCATION
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xB);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xB);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xB, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xB, wdata);
 
     // RX TAG SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x9);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x9);
     wdata = (rdata0 & 0xFFFFFFDF) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x9, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x9, wdata);
 
     // RXFIFO AE THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x11);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x11);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x11, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x11, wdata);
 
     // RXFIFO AE THLD & RX FIFO E THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x10);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x10);
     wdata = (rdata0 & 0xFFFFFF20) | 0x40;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x10, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x10, wdata);
 
     // RXFIFO AF THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x12);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x12);
     wdata = (rdata0 & 0xFFFFFF83) | 0x08;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x12, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x12, wdata);
 
     // RXFIFO RD EMPTY & RXFIFO WR FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x13);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x13);
     wdata = (rdata0 & 0xFFFFFF3F) | 0xC0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x13, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x13, wdata);
 
     // SH LOCATION
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x8);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x8);
     wdata = (rdata0 & 0xFFFFFFDF) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8, wdata);
 
     // TX CLK DP SEL & TX DATA IN SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x4);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x4);
     wdata = (rdata0 & 0xFFFFFFA3) | 0x0C;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x4, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x4, wdata);
 
     // TX GB IDWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xC);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xC);
     wdata = (rdata0 & 0xFFFFFF8F) | 0x50;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xC, wdata);
 
     // TXFIFO PH COMP
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x17);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x17);
     wdata = (rdata0 & 0xFFFFFFCF) | 0x30;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x17, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x17, wdata);
 
     // RX DATAPATH MAPPING MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x218);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x218);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x218, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x218, wdata);
 
     // RX FIFO DOUBLE WRITE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21C);
     wdata = (rdata0 & 0xFFFFFFFE) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21C, wdata);
 
     // RD CLK SCG EN & WR CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x227);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x227);
     wdata = (rdata0 & 0xFFFFFFCF) | 0x30;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x227, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x227, wdata);
 
     // RX FIFO RD CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x226);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x226);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x226, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x226, wdata);
 
     // RX FIFO WR CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x225);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x225);
     wdata = (rdata0 & 0xFFFFFF1F) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x225, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x225, wdata);
 
     // RX PHCOMP RD SEL & RX RXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21B);
     wdata = (rdata0 & 0xFFFFFF00) | 0x47;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21B, wdata);
 
     // RX FIFO POWER MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x220);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x220);
     wdata = (rdata0 & 0xFFFFFF3F) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x220, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x220, wdata);
 
     // RX RXFIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21A);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21A);
     wdata = (rdata0 & 0xFFFFFF9F) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21A, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21A, wdata);
 
     // TX DATAPATH MAPPING MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x208);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x208);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x208, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x208, wdata);
 
     // TX FIFO DOUBLE READ
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x20B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x20B);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x20B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x20B, wdata);
 
     // TX FIFO RD CLK SCG EN & TX FIFO RD CLK SEL & TX FIFO WR CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x214);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x214);
     wdata = (rdata0 & 0xFFFFFFFC) | 0x3;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x214, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x214, wdata);
 
     // HRDRST ALIGN BYPASS & HRDRST DCD CAL DONE BYPASS
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x215);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x215);
     wdata = (rdata0 & 0xFFFFFF5F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x215, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x215, wdata);
 
     // TX TX FIFO POWER MODE & TX WORD ALIGN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x210);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x210);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x210, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x210, wdata);
 
     // TX AIB TX DCC BYP & TX AIB TX DCC EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x32E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x32E);
     wdata = (rdata0 & 0xFFFFFFE7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x32E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x32E, wdata);
 
     //TX REFCLK RATIO
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x40);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x40);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -1523,14 +1523,14 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     //RX REFCLK RATIO
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x40);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x6);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x40);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x6);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -1546,7 +1546,7 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     // set PMA tx/rx width mode , 20bits
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x11);
@@ -1582,14 +1582,14 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
     //serdes_loop_on (xcvr_base_addr);
 
     // Reset AIB - Assert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0xAA;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     // Reset AIB - Deassert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     printk ("\nINFO: End of dynamic reconfiguration: 25G_PTP_RSFEC --> CPRI_9p8G \n\n");
 
@@ -1621,9 +1621,9 @@ int32_t fhgw_25gptpfec_to_4p9gcpri(uint32_t eth_base_addr,
     //2. REFCLK SEL SET
     // EC[3:0] Select reference clocks [0-8] muxed onto refclkin_in_A
     // EF[3:0] Selects which reference clock [0-8] is mapped to refclk2 in the Native PHY IP core
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xEF); //[3:0] refclk2 lookup register
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xEF); //[3:0] refclk2 lookup register
     wdata = (rdata0 & 0xFFFFFF0F) | 0x0; // {4'b0000,rdata0[3:0]}
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xEC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xEC, wdata);
     
     //3. Switch PMA uC Clock to XCVR-Refclk 0
     fhgw_fpga_swith_pma_uc_clock_0 (xcvr_base_addr);
@@ -1638,288 +1638,288 @@ int32_t fhgw_25gptpfec_to_4p9gcpri(uint32_t eth_base_addr,
     //[3:0] = cpri_rate_sel;
     //[4] = cpri_fec_en;
     //[9:5] = i_sl_rx_bitslipboundary_sel;
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 & 0xE0) | 0x4;
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
     
     // ------------------------- Reconfig to CPRI 4p9g -------------------------
     
     // AIB CLOCK1 & AIB CLOCK2 Select
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x322);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x322);
     wdata = (rdata0 & 0xFFFFFFF0) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x322, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x322, wdata);
     
     // RX FIFO STOP READ & RX FIFO PEMPTY
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x313);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x313);
     wdata = (rdata0 & 0xFFFFFF00) | 0xC5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x313, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x313, wdata);
     
     // RX FIFO POWER MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x31A);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x31A);
     wdata = (rdata0 & 0xFFFFFFE3) | 0x1C;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x31A, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x31A, wdata);
     
     // RX FIFO FULL Threshold
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x312);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x312);
     wdata = (rdata0 & 0xFFFFFF00) | 0x3F;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x312, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x312, wdata);
     
     // RX FIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x315);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x315);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x315, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x315, wdata);
     
     // RX FIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x314);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x314);
     wdata = (rdata0 & 0xFFFFFF00) | 0xD9;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x314, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x314, wdata);
     
     // TX AIB CLK1 SEL & TX AIB CLK2 SEL & TX FIFO RD CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x30D);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x30D);
     wdata = (rdata0 & 0xFFFFFF03) | 0x14;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x30D, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x30D, wdata);
     
     // TX FIFO STOP RD & TX FIFO STOP WR
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x302);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x302);
     wdata = (rdata0 & 0xFFFFFF00) | 0xE4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x302, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x302, wdata);
     
     // TX GB TX IDWIDTH & TX GB TX ODWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x306);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x306);
     wdata = (rdata0 & 0xFFFFFF00) | 0x2B;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x306, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x306, wdata);
     
     // HIP OSC CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x30E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x30E);
     wdata = (rdata0 & 0xFFFFFF7F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x30E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x30E, wdata);
     
     // TX PHCOMP RD SEL & TX TXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x301);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x301);
     wdata = (rdata0 & 0xFFFFFF00) | 0x5E;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x301, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x301, wdata);
     
     // TXFIFO POWER MODE & TX TXFIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x303);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x303);
     wdata = (rdata0 & 0xFFFFFF00) | 0xF4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x303, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x303, wdata);
     
     // TX TXFIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x300);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x300);
     wdata = (rdata0 & 0xFFFFFF1F) | 0xA0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x300, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x300, wdata);
     
     // DCC CSR EN FSM
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x3C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x3C);
     wdata = (rdata0 & 0xFFFFFF00) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x3C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x3C, wdata);
     
     // RB CONT CAL & RB DCC BYP 7 RB DCC EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x38);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x38);
     wdata = (rdata0 & 0xFFFFFF00) | 0x1;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x38, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x38, wdata);
     
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x36);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x36);
     wdata = (rdata0 & 0xFFFFFFFE) | 0x1;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x36, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x36, wdata);
     
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x35);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x35);
     wdata = (rdata0 & 0xFFFFFF00) | 0x48;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x35, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x35, wdata);
     
     // RX BIT COUNTER ROLLOVER & SEL BIT COUNTER ADDER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x34);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x34);
     wdata = (rdata0 & 0xFFFFFF0C) | 0xC2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x34, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x34, wdata);
     
     // RXBIT CONTR PMA
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x37);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x37);
     wdata = (rdata0 & 0xFFFFFF7F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x37, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x37, wdata);
     
     // EN DIRECT TX & EN FEC D2 TX & EN TX GBX & TX ML SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x5);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x5);
     wdata = (rdata0 & 0xFFFFFF58) | 0x83;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x5, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x5, wdata);
     
     // EN FIFO RD RX & RX FIFO CLK SEL & RX ML SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x7);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x7);
     wdata = (rdata0 & 0xFFFFFF85) | 0x68;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x7, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x7, wdata);
     
     // RX GB ODWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xE);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xE);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xE, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xE, wdata);
     
     // RX SH LOCATION
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xB);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xB);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xB, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xB, wdata);
     
     // RX TAG SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x9);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x9);
     wdata = (rdata0 & 0xFFFFFFDF) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x9, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x9, wdata);
     
     // RXFIFO AE THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x11);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x11);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x11, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x11, wdata);
     
     // RXFIFO AE THLD & RX FIFO E THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x10);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x10);
     wdata = (rdata0 & 0xFFFFFF20) | 0x40;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x10, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x10, wdata);
     
     // RXFIFO AF THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x12);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x12);
     wdata = (rdata0 & 0xFFFFFF83) | 0x08;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x12, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x12, wdata);
     
     // RXFIFO RD EMPTY & RXFIFO WR FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x13);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x13);
     wdata = (rdata0 & 0xFFFFFF3F) | 0xC0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x13, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x13, wdata);
     
     // SH LOCATION
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x8);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x8);
     wdata = (rdata0 & 0xFFFFFFDF) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8, wdata);
     
     // TX CLK DP SEL & TX DATA IN SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x4);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x4);
     wdata = (rdata0 & 0xFFFFFFA3) | 0x0C;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x4, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x4, wdata);
     
     // TX GB IDWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xC);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xC);
     wdata = (rdata0 & 0xFFFFFF8F) | 0x50;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xC, wdata);
     
     // TXFIFO PH COMP
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x17);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x17);
     wdata = (rdata0 & 0xFFFFFFCF) | 0x30;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x17, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x17, wdata);
     
     // RX DATAPATH MAPPING MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x218);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x218);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x218, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x218, wdata);
     
     // RX FIFO DOUBLE WRITE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21C);
     wdata = (rdata0 & 0xFFFFFFFE) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21C, wdata);
     
     // RD CLK SCG EN & WR CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x227);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x227);
     wdata = (rdata0 & 0xFFFFFFCF) | 0x30;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x227, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x227, wdata);
     
     // RX FIFO RD CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x226);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x226);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x226, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x226, wdata);
     
     // RX FIFO WR CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x225);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x225);
     wdata = (rdata0 & 0xFFFFFF1F) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x225, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x225, wdata);
     
     // RX PHCOMP RD SEL & RX RXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21B);
     wdata = (rdata0 & 0xFFFFFF00) | 0x47;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21B, wdata);
     
     // RX FIFO POWER MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x220);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x220);
     wdata = (rdata0 & 0xFFFFFF3F) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x220, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x220, wdata);
     
     // RX RXFIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21A);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21A);
     wdata = (rdata0 & 0xFFFFFF00) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21A, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21A, wdata);
     
     // TX DATAPATH MAPPING MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x208);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x208);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x208, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x208, wdata);
     
     // TX FIFO DOUBLE READ
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x20B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x20B);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x20B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x20B, wdata);
     
     // TX FIFO RD CLK SCG EN & TX FIFO RD CLK SEL & TX FIFO WR CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x214);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x214);
     wdata = (rdata0 & 0xFFFFFFFC) | 0x3;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x214, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x214, wdata);
     
     // HRDRST ALIGN BYPASS & HRDRST DCD CAL DONE BYPASS
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x215);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x215);
     wdata = (rdata0 & 0xFFFFFF5F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x215, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x215, wdata);
     
     // TX TX FIFO POWER MODE & TX WORD ALIGN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x210);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x210);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x210, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x210, wdata);
     
     // TX AIB TX DCC BYP & TX AIB TX DCC EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x32E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x32E);
     wdata = (rdata0 & 0xFFFFFFE7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x32E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x32E, wdata);
     
     // RX FIFO FULL Threshold
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x231); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x231); 
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x231, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x231, wdata);
     
     // RX FIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x233); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x233); 
     wdata = (rdata0 & 0xFFFFFFC0) | 0x20;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x233, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x233, wdata);
     
     // HIP OSC CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x309); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x309); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x3;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x309, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x309, wdata);
     
     // TX PHCOMP RD SEL & TX TXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x310); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x310); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x19;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x310, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x310, wdata);
     
     // TXFIFO POWER MODE & TX TXFIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x311); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x311); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x311, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x311, wdata);
     
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x318); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x318); 
     wdata = (rdata0 & 0xFFFFFFFC) | 0x2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x318, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x318, wdata);
     
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x320); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x320); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x11;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x320, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x320, wdata);
     
     // RX BIT COUNTER ROLLOVER & SEL BIT COUNTER ADDER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x32C); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x32C); 
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x32C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x32C, wdata);
     
     //TX REFCLK RATIO
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x20);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x20);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
     
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -1935,14 +1935,14 @@ int32_t fhgw_25gptpfec_to_4p9gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
     
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
     
     //RX REFCLK RATIO
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x20);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x6);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x20);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x6);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
     
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -1958,7 +1958,7 @@ int32_t fhgw_25gptpfec_to_4p9gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
     
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
     
     // set PMA tx/rx width mode , 20bits
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x11);
@@ -1984,14 +1984,14 @@ int32_t fhgw_25gptpfec_to_4p9gcpri(uint32_t eth_base_addr,
     //serdes_loop_on (xcvr_base_addr);
     
     // Reset AIB - Assert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0xAA;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
     
     // Reset AIB - Deassert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
     
     printk ("\nINFO: End of dynamic reconfiguration: 25G_PTP_RSFEC --> CPRI_4p9G\n\n");
     
@@ -2019,9 +2019,9 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
     //2. REFCLK SEL SET
     // EC[3:0] Select reference clocks [0-8] muxed onto refclkin_in_A
     // EF[3:0] Selects which reference clock [0-8] is mapped to refclk2 in the Native PHY IP core
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xEF); //[3:0] refclk2 lookup register
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xEF); //[3:0] refclk2 lookup register
     wdata = (rdata0 & 0xFFFFFF0F) | 0x0; // {4'b0000,rdata0[3:0]}
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xEC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xEC, wdata);
 
     //3. Switch PMA uC Clock to XCVR-Refclk 0
     fhgw_fpga_swith_pma_uc_clock_0 (xcvr_base_addr);
@@ -2042,281 +2042,281 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
     // ------------------------- Reconfig to CPRI 2p4g -------------------------
 
     // AIB CLOCK1 & AIB CLOCK2 Select
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x322);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x322);
     wdata = (rdata0 & 0xFFFFFFF0) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x322, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x322, wdata);
 
     // RX FIFO STOP READ & RX FIFO PEMPTY
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x313);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x313);
     wdata = (rdata0 & 0xFFFFFF00) | 0xC5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x313, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x313, wdata);
 
     // RX FIFO POWER MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x31A);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x31A);
     wdata = (rdata0 & 0xFFFFFFE3) | 0x1C;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x31A, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x31A, wdata);
 
     // RX FIFO FULL Threshold
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x312);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x312);
     wdata = (rdata0 & 0xFFFFFF00) | 0x3F;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x312, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x312, wdata);
 
     // RX FIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x315);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x315);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x315, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x315, wdata);
 
     // RX FIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x314);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x314);
     wdata = (rdata0 & 0xFFFFFF00) | 0xD9;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x314, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x314, wdata);
 
     // TX AIB CLK1 SEL & TX AIB CLK2 SEL & TX FIFO RD CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x30D);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x30D);
     wdata = (rdata0 & 0xFFFFFF03) | 0x14;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x30D, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x30D, wdata);
 
     // TX FIFO STOP RD & TX FIFO STOP WR
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x302);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x302);
     wdata = (rdata0 & 0xFFFFFF00) | 0xE4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x302, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x302, wdata);
 
     // TX GB TX IDWIDTH & TX GB TX ODWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x306);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x306);
     wdata = (rdata0 & 0xFFFFFF00) | 0x2B;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x306, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x306, wdata);
 
     // HIP OSC CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x30E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x30E);
     wdata = (rdata0 & 0xFFFFFF7F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x30E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x30E, wdata);
 
     // TX PHCOMP RD SEL & TX TXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x301);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x301);
     wdata = (rdata0 & 0xFFFFFF00) | 0x5E;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x301, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x301, wdata);
 
     // TXFIFO POWER MODE & TX TXFIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x303);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x303);
     wdata = (rdata0 & 0xFFFFFF00) | 0xF4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x303, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x303, wdata);
 
     // TX TXFIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x300);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x300);
     wdata = (rdata0 & 0xFFFFFF1F) | 0xA0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x300, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x300, wdata);
 
     // DCC CSR EN FSM
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x3C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x3C);
     wdata = (rdata0 & 0xFFFFFF00) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x3C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x3C, wdata);
 
     // RB CONT CAL & RB DCC BYP 7 RB DCC EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x38);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x38);
     wdata = (rdata0 & 0xFFFFFF00) | 0x1;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x38, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x38, wdata);
 
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x36);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x36);
     wdata = (rdata0 & 0xFFFFFFFE) | 0x1;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x36, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x36, wdata);
 
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x35);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x35);
     wdata = (rdata0 & 0xFFFFFF00) | 0x48;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x35, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x35, wdata);
 
     // RX BIT COUNTER ROLLOVER & SEL BIT COUNTER ADDER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x34);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x34);
     wdata = (rdata0 & 0xFFFFFF0C) | 0xC2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x34, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x34, wdata);
 
     // RXBIT CONTR PMA
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x37);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x37);
     wdata = (rdata0 & 0xFFFFFF7F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x37, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x37, wdata);
 
     // EN DIRECT TX & EN FEC D2 TX & EN TX GBX & TX ML SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x5);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x5);
     wdata = (rdata0 & 0xFFFFFF58) | 0x83;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x5, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x5, wdata);
 
     // EN FIFO RD RX & RX FIFO CLK SEL & RX ML SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x7);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x7);
     wdata = (rdata0 & 0xFFFFFF85) | 0x68;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x7, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x7, wdata);
 
     // RX GB ODWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xE);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xE);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x5;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xE, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xE, wdata);
 
     // RX SH LOCATION
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xB);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xB);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xB, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xB, wdata);
 
     // RX TAG SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x9);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x9);
     wdata = (rdata0 & 0xFFFFFFDF) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x9, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x9, wdata);
 
     // RXFIFO AE THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x11);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x11);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x11, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x11, wdata);
 
     // RXFIFO AE THLD & RX FIFO E THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x10);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x10);
     wdata = (rdata0 & 0xFFFFFF20) | 0x40;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x10, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x10, wdata);
 
     // RXFIFO AF THLD
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x12);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x12);
     wdata = (rdata0 & 0xFFFFFF83) | 0x08;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x12, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x12, wdata);
 
     // RXFIFO RD EMPTY & RXFIFO WR FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x13);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x13);
     wdata = (rdata0 & 0xFFFFFF3F) | 0xC0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x13, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x13, wdata);
 
     // SH LOCATION
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x8);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x8);
     wdata = (rdata0 & 0xFFFFFFDF) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8, wdata);
 
     // TX CLK DP SEL & TX DATA IN SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x4);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x4);
     wdata = (rdata0 & 0xFFFFFFA3) | 0x0C;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x4, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x4, wdata);
 
     // TX GB IDWIDTH
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0xC);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0xC);
     wdata = (rdata0 & 0xFFFFFF8F) | 0x50;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0xC, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0xC, wdata);
 
     // TXFIFO PH COMP
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x17);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x17);
     wdata = (rdata0 & 0xFFFFFFCF) | 0x30;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x17, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x17, wdata);
 
     // RX DATAPATH MAPPING MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x218);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x218);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x218, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x218, wdata);
 
     // RX FIFO DOUBLE WRITE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21C);
     wdata = (rdata0 & 0xFFFFFFFE) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21C, wdata);
 
     // RD CLK SCG EN & WR CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x227);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x227);
     wdata = (rdata0 & 0xFFFFFFCF) | 0x30;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x227, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x227, wdata);
 
     // RX FIFO RD CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x226);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x226);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x226, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x226, wdata);
 
     // RX FIFO WR CLK SEL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x225);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x225);
     wdata = (rdata0 & 0xFFFFFF1F) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x225, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x225, wdata);
 
     // RX PHCOMP RD SEL & RX RXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21B);
     wdata = (rdata0 & 0xFFFFFF00) | 0x47;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21B, wdata);
 
     // RX FIFO POWER MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x220);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x220);
     wdata = (rdata0 & 0xFFFFFF3F) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x220, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x220, wdata);
 
     // RX RXFIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x21A);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x21A);
     wdata = (rdata0 & 0xFFFFFF00) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x21A, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x21A, wdata);
 
     // TX DATAPATH MAPPING MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x208);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x208);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x208, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x208, wdata);
 
     // TX FIFO DOUBLE READ
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x20B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x20B);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x20B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x20B, wdata);
 
     // TX FIFO RD CLK SCG EN & TX FIFO RD CLK SEL & TX FIFO WR CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x214);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x214);
     wdata = (rdata0 & 0xFFFFFFFC) | 0x3;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x214, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x214, wdata);
 
     // HRDRST ALIGN BYPASS & HRDRST DCD CAL DONE BYPASS
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x215);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x215);
     wdata = (rdata0 & 0xFFFFFF5F) | 0x80;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x215, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x215, wdata);
 
     // TX TX FIFO POWER MODE & TX WORD ALIGN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x210);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x210);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x210, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x210, wdata);
 
     // TX AIB TX DCC BYP & TX AIB TX DCC EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x32E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x32E);
     wdata = (rdata0 & 0xFFFFFFE7) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x32E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x32E, wdata);
 
     // RX FIFO FULL Threshold
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x231); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x231); 
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x231, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x231, wdata);
 
     // RX FIFO MODE
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x233); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x233); 
     wdata = (rdata0 & 0xFFFFFFC0) | 0x20;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x233, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x233, wdata);
 
     // HIP OSC CLK SCG EN
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x309); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x309); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x3;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x309, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x309, wdata);
 
     // TX PHCOMP RD SEL & TX TXFIFO FULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x310); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x310); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x19;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x310, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x310, wdata);
 
     // TXFIFO POWER MODE & TX TXFIFO PFULL
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x311); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x311); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x311, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x311, wdata);
 
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x318); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x318); 
     wdata = (rdata0 & 0xFFFFFFFC) | 0x2;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x318, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x318, wdata);
 
     // RX BIT COUNTER ROLLOVER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x320); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x320); 
     wdata = (rdata0 & 0xFFFFFF00) | 0x11;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x320, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x320, wdata);
 
     // RX BIT COUNTER ROLLOVER & SEL BIT COUNTER ADDER
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x32C); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x32C); 
     wdata = (rdata0 & 0xFFFFFFF8) | 0x4;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x32C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x32C, wdata);
 
     //TX REFCLK RATIO
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x10);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x5);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x10);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -2332,14 +2332,14 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
 
     //RX REFCLK RATIO
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x84, 0x10);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x85, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x86, 0x6);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x87, 0x0);
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x90, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x84, 0x10);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x85, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x86, 0x6);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x87, 0x0);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x90, 0x1);
 
     // Polling PMA register
     // 4. Verify that the PMA register read/write is sent to the PMA by verifying that 0x8A[7] is asserted.
@@ -2355,7 +2355,7 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
     return_value += fhgw_fpga_polling_for_cfg_value_compare (xcvr_base_addr, 0x89, 0);
 
     // Write 1'b1 to 0x8A[7] to clear the 0x8A[7] value
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x8A, 0x80);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x8A, 0x80);
  
     // set PMA tx/rx width mode , 20bits
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x11);
@@ -2381,14 +2381,14 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
     //serdes_loop_on (xcvr_base_addr);
 
     // Reset AIB - Assert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0xAA;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     // Reset AIB - Deassert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     printk ("\nINFO: End of dynamic reconfiguration: 25G_PTP_RSFEC --> CPRI_2p4G\n\n");
     
@@ -2419,14 +2419,14 @@ int32_t fhgw_9p8gcpri_to_9p8gtunneling(uint32_t eth_base_addr,
     FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
     
     // Reset AIB - Assert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0xAA;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     // Reset AIB - Deassert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     printk ("\nINFO: End of dynamic reconfiguration: CPRI_low_speed --> CPRI_low_speed_tunneling\n\n");
 
@@ -2459,14 +2459,14 @@ int32_t fhgw_4p9gcpri_to_4p9gtunneling(uint32_t eth_base_addr,
     FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
     
     // Reset AIB - Assert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0xAA;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     // Reset AIB - Deassert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     printk ("\nINFO: End of dynamic reconfiguration: CPRI_low_speed --> CPRI_low_speed_tunneling\n\n");
 
@@ -2497,14 +2497,14 @@ int32_t fhgw_2p4gcpri_to_2p4gtunneling(uint32_t eth_base_addr,
     FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
     
     // Reset AIB - Assert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0xAA;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     // Reset AIB - Deassert
-    rdata0 = FHGW_FPGA_REG_READ(xcvr_base_addr, 0x400E2);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
     wdata = (rdata0 & 0xFFFFFF55) | 0x0;
-    FHGW_FPGA_REG_WRITE(xcvr_base_addr, 0x400E2, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, xcvr_base_addr + 0x400E2, wdata);
 
     printk ("\nINFO: End of dynamic reconfiguration: CPRI_low_speed --> CPRI_low_speed_tunneling\n\n");
 
@@ -2612,11 +2612,6 @@ void fhgw_fpga_update_address(uint8_t channel_no, fpga_address *regaddr)
             break;
     }
 
-    regaddr->eth_base_addr += fpga_dev->regs;
-    regaddr->xcvr_base_addr += fpga_dev->regs;
-    regaddr->rsfec_base_addr += fpga_dev->regs;
-    regaddr->cprisoft_base_addr += fpga_dev->regs;
-
     printk("\n DRV DBG: eth_base_addr : 0x%x, xcvr_base_addr : 0x%x, rsfec_base_addr : 0x%x, cprisoft_base_addr : 0x%x", regaddr->eth_base_addr, regaddr->xcvr_base_addr, regaddr->rsfec_base_addr, regaddr->cprisoft_base_addr);
 }
 
@@ -2679,9 +2674,9 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
             break;
 
         case FHGW_FPGA_SERDES_LOOPON:
-            printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d", params.dr_params.channel_no);
             fhgw_fpga_update_address(params.dr_params.channel_no, &regaddr);
             fhgw_fpga_dr_init();
+            printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d regaddr.xcvr_base_addr : 0x%x", params.dr_params.channel_no, regaddr.xcvr_base_addr);
             fhgw_fpga_serdes_loop_on(regaddr.xcvr_base_addr);
             break;
 
