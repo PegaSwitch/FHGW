@@ -19,7 +19,7 @@
 #define FHGW_FPGA_DRV_VERSION       1
 #define FHGW_FPGA_DRV_SUBVERSION    0
 
-#define FHGW_FPGA_REG_SIZE		                0x40000000	/* 1GB */
+#define FHGW_FPGA_REG_SIZE		                0x10000000	/* 256 MB */
 
 #define FPGA_SYSTEM_REGISTER_BASE				0x00000000
 #define FPGA_SYSTEM_REGISTER_SIZE				0x10000000
