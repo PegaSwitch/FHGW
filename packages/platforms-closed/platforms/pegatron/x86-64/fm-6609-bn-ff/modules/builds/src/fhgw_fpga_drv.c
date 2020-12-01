@@ -2580,6 +2580,8 @@ void fhgw_fpga_update_address(uint8_t channel_no, fpga_address *regaddr)
     regaddr->xcvr_base_addr += fpga_dev->regs;
     regaddr->rsfec_base_addr += fpga_dev->regs;
     regaddr->cprisoft_base_addr += fpga_dev->regs;
+
+    printk("\n DRV DBG: eth_base_addr : 0x%x, xcvr_base_addr : 0x%x, rsfec_base_addr : 0x%x, cprisoft_base_addr : 0x%x", regaddr->eth_base_addr, regaddr->xcvr_base_addr, regaddr->rsfec_base_addr, regaddr->cprisoft_base_addr);
 }
 
 void fhgw_fpga_ecpri_to_cpri_switch(uint8_t channel_no, uint8_t linerate)
@@ -2620,7 +2622,7 @@ static int fhgw_fpga_drv_open(struct inode* inode, struct file* file)
 static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     ioctl_arg_t params = {0};
-    fpga_dr_params *dr_params = NULL;
+    fpga_dr_params dr_params = {0};
     fpga_address regaddr;
 
     if (copy_from_user(&params, (ioctl_arg_t *)arg, sizeof(ioctl_arg_t))) {
@@ -2630,38 +2632,38 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
     switch (cmd) {
         case FHGW_FPGA_READ_VALUE:
             params.value = FHGW_FPGA_REG_READ(fpga_dev->regs, params.regaddr + params.offset);
-            printk("\n DRV DBG : Read Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
             if (copy_to_user((ioctl_arg_t *)arg, &params, sizeof(ioctl_arg_t))) {
                 return -EACCES;
             }
+            printk("\n DRV DBG : Read Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
             break;
 
         case FHGW_FPGA_WRITE_VALUE:
-            printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
             FHGW_FPGA_REG_WRITE(fpga_dev->regs, params.regaddr + params.offset, params.value);
+            printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
             break;
 
         case FHGW_FPGA_SERDES_LOOPON:
-            dr_params = (fpga_dr_params *)params.data;
-            fhgw_fpga_update_address(dr_params->channel_no, &regaddr);
+            memcpy(&dr_params, (fpga_dr_params *)params.data, sizeof(fpga_dr_params));
+            printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d", dr_params.channel_no);
+            fhgw_fpga_update_address(dr_params.channel_no, &regaddr);
             fhgw_fpga_dr_init();
             fhgw_fpga_serdes_loop_on(regaddr.xcvr_base_addr);
-            printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d", dr_params->channel_no);
             break;
 
         case FHGW_FPGA_GENERAL_CALIBRATION:
-            dr_params = (fpga_dr_params *)params.data;
-            fhgw_fpga_update_address(dr_params->channel_no, &regaddr);
+            memcpy(&dr_params, (fpga_dr_params *)params.data, sizeof(fpga_dr_params));
+            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", dr_params.channel_no, dr_params.linerate);
+            fhgw_fpga_update_address(dr_params.channel_no, &regaddr);
             fhgw_fpga_dr_init();
-            fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, dr_params->linerate);
-            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d", dr_params->channel_no);
+            fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, dr_params.linerate);
             break;
 
         case FHGW_FPGA_DYNAMIC_RECONFIG_IP:
-            dr_params = (fpga_dr_params *)params.data;
+            memcpy(&dr_params, (fpga_dr_params *)params.data, sizeof(fpga_dr_params));
+            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", dr_params.channel_no, dr_params.linerate);
             fhgw_fpga_dr_init();
-            fhgw_fpga_ecpri_to_cpri_switch(dr_params->channel_no, dr_params->linerate);
-            printk("\n DRV DBG : FHGW_FPGA_DYNAMIC_RECONFIG_IP Channel : %d", dr_params->channel_no);
+            fhgw_fpga_ecpri_to_cpri_switch(dr_params.channel_no, dr_params.linerate);
             break;
 
         default:
