@@ -2622,7 +2622,6 @@ static int fhgw_fpga_drv_open(struct inode* inode, struct file* file)
 static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     ioctl_arg_t params = {0};
-    fpga_dr_params dr_params = {0};
     fpga_address regaddr;
 
     if (copy_from_user(&params, (ioctl_arg_t *)arg, sizeof(ioctl_arg_t))) {
@@ -2644,26 +2643,23 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
             break;
 
         case FHGW_FPGA_SERDES_LOOPON:
-            memcpy(&dr_params, (fpga_dr_params *)params.data, sizeof(fpga_dr_params));
-            printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d", dr_params.channel_no);
-            fhgw_fpga_update_address(dr_params.channel_no, &regaddr);
+            printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d", params.dr_params.channel_no);
+            fhgw_fpga_update_address(params.dr_params.channel_no, &regaddr);
             fhgw_fpga_dr_init();
             fhgw_fpga_serdes_loop_on(regaddr.xcvr_base_addr);
             break;
 
         case FHGW_FPGA_GENERAL_CALIBRATION:
-            memcpy(&dr_params, (fpga_dr_params *)params.data, sizeof(fpga_dr_params));
-            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", dr_params.channel_no, dr_params.linerate);
-            fhgw_fpga_update_address(dr_params.channel_no, &regaddr);
+            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", params.dr_params.channel_no, params.dr_params.linerate);
+            fhgw_fpga_update_address(params.dr_params.channel_no, &regaddr);
             fhgw_fpga_dr_init();
-            fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, dr_params.linerate);
+            fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, params.dr_params.linerate);
             break;
 
         case FHGW_FPGA_DYNAMIC_RECONFIG_IP:
-            memcpy(&dr_params, (fpga_dr_params *)params.data, sizeof(fpga_dr_params));
-            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", dr_params.channel_no, dr_params.linerate);
+            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", params.dr_params.channel_no, params.dr_params.linerate);
             fhgw_fpga_dr_init();
-            fhgw_fpga_ecpri_to_cpri_switch(dr_params.channel_no, dr_params.linerate);
+            fhgw_fpga_ecpri_to_cpri_switch(params.dr_params.channel_no, params.dr_params.linerate);
             break;
 
         default:
