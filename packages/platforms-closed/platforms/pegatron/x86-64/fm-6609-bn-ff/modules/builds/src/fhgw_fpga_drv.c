@@ -2673,9 +2673,12 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
             printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs + params.regaddr, params.offset, params.value);
             break;
 
+        case FHGW_FPGA_DR_INIT:
+            fhgw_fpga_dr_init();
+            break;
+
         case FHGW_FPGA_SERDES_LOOPON:
             fhgw_fpga_update_address(params.dr_params.channel_no, &regaddr);
-            fhgw_fpga_dr_init();
             printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d regaddr.xcvr_base_addr : 0x%x", params.dr_params.channel_no, regaddr.xcvr_base_addr);
             fhgw_fpga_serdes_loop_on(regaddr.xcvr_base_addr);
             break;
@@ -2683,13 +2686,11 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
         case FHGW_FPGA_GENERAL_CALIBRATION:
             printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", params.dr_params.channel_no, params.dr_params.linerate);
             fhgw_fpga_update_address(params.dr_params.channel_no, &regaddr);
-            fhgw_fpga_dr_init();
             fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, params.dr_params.linerate);
             break;
 
         case FHGW_FPGA_DYNAMIC_RECONFIG_IP:
             printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d linerate : %d", params.dr_params.channel_no, params.dr_params.linerate);
-            fhgw_fpga_dr_init();
             fhgw_fpga_ecpri_to_cpri_switch(params.dr_params.channel_no, params.dr_params.linerate);
             break;
 
