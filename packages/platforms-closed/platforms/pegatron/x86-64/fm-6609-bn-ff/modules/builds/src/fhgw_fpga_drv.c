@@ -611,7 +611,7 @@ int32_t fhgw_fpga_dr_init(void)
     // o_ehip_ready
     do {
         udelay(1);
-       reg_value = FHGW_FPGA_REG_READ(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_STATUS_DR_CH0);
+       reg_value = FHGW_FPGA_REG_READ(fpga_dev->regs, FPGA_DATAPATH_STATUS_DR_CH0);
     } while ((reg_value & 0x1) != 0x1);
     
     return 0;
@@ -628,7 +628,7 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
 
     // --------------------- Reconfiguration to 24G CPRI -----------------------
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     // Serdes Disable
     fhgw_fpga_serdes_disable (xcvr_base_addr);
@@ -808,7 +808,7 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     uint32_t wdata;
 
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     // Serdes Disable
     fhgw_fpga_serdes_disable (xcvr_base_addr);
@@ -968,7 +968,7 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     uint32_t wdata;
 
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     // Serdes Disable
     fhgw_fpga_serdes_disable (xcvr_base_addr);
@@ -1210,7 +1210,7 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
     uint32_t wdata;
 
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     // Serdes Disable
     fhgw_fpga_serdes_disable (xcvr_base_addr);
@@ -1568,10 +1568,10 @@ int32_t fhgw_25gptpfec_to_4p9gcpri(uint32_t eth_base_addr,
     uint32_t rdata0;
     uint32_t wdata;
 
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0xE);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0xE);
 
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     printk ("\nINFO: Dynamic reconfiguration: 25G_PTP_RSFEC --> CPRI_4p9G \n\n");
 
@@ -1971,7 +1971,7 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
     uint32_t wdata;
     
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     // Serdes Disable
     fhgw_fpga_serdes_disable (xcvr_base_addr);
@@ -2369,7 +2369,7 @@ int32_t fhgw_9p8gcpri_to_9p8gtunneling(uint32_t eth_base_addr,
     uint32_t wdata;
 
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     // ============================= CPRI SOFT CONFIG================================
 
@@ -2406,10 +2406,10 @@ int32_t fhgw_4p9gcpri_to_4p9gtunneling(uint32_t eth_base_addr,
     uint32_t rdata0;
     uint32_t wdata;
 
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0xE);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0xE);
     
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
     // ============================= CPRI SOFT CONFIG================================
 
@@ -2447,7 +2447,7 @@ int32_t fhgw_2p4gcpri_to_2p4gtunneling(uint32_t eth_base_addr,
     uint32_t wdata;
 
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
 
   // ============================= CPRI SOFT CONFIG================================
 
@@ -2485,7 +2485,7 @@ int32_t fhgw_10gcpri_to_10gcpritunnel(uint32_t eth_base_addr,
     uint32_t wdata;
     
     // DR start:  assert tx/rx reset ports
-    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BASE, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
     
     // ============================ EHIP CONFIG ===================================
 
@@ -2575,6 +2575,11 @@ void fhgw_fpga_update_address(uint8_t channel_no, fpga_address *regaddr)
         default:
             break;
     }
+
+    regaddr->eth_base_addr += fpga_dev->regs;
+    regaddr->xcvr_base_addr += fpga_dev->regs;
+    regaddr->rsfec_base_addr += fpga_dev->regs;
+    regaddr->cprisoft_base_addr += fpga_dev->regs;
 }
 
 void fhgw_fpga_ecpri_to_cpri_switch(uint8_t channel_no, uint8_t linerate)
@@ -2624,7 +2629,7 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
 
     switch (cmd) {
         case FHGW_FPGA_READ_VALUE:
-            params.value = FHGW_FPGA_REG_READ(fpga_dev->regs, params.offset);
+            params.value = FHGW_FPGA_REG_READ(fpga_dev->regs, params.regaddr + params.offset);
             printk("\n DRV DBG : Read Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
             if (copy_to_user((ioctl_arg_t *)arg, &params, sizeof(ioctl_arg_t))) {
                 return -EACCES;
@@ -2633,7 +2638,7 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
 
         case FHGW_FPGA_WRITE_VALUE:
             printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
-            FHGW_FPGA_REG_WRITE(fpga_dev->regs, params.offset, params.value);
+            FHGW_FPGA_REG_WRITE(fpga_dev->regs, params.regaddr + params.offset, params.value);
             break;
 
         case FHGW_FPGA_SERDES_LOOPON:
@@ -2641,6 +2646,7 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
             fhgw_fpga_update_address(dr_params->channel_no, &regaddr);
             fhgw_fpga_dr_init();
             fhgw_fpga_serdes_loop_on(regaddr.xcvr_base_addr);
+            printk("\n DRV DBG : FHGW_FPGA_SERDES_LOOPON  Channel : %d", dr_params->channel_no);
             break;
 
         case FHGW_FPGA_GENERAL_CALIBRATION:
@@ -2648,12 +2654,14 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
             fhgw_fpga_update_address(dr_params->channel_no, &regaddr);
             fhgw_fpga_dr_init();
             fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, dr_params->linerate);
+            printk("\n DRV DBG : FHGW_FPGA_GENERAL_CALIBRATION Channel : %d", dr_params->channel_no);
             break;
 
         case FHGW_FPGA_DYNAMIC_RECONFIG_IP:
             dr_params = (fpga_dr_params *)params.data;
             fhgw_fpga_dr_init();
             fhgw_fpga_ecpri_to_cpri_switch(dr_params->channel_no, dr_params->linerate);
+            printk("\n DRV DBG : FHGW_FPGA_DYNAMIC_RECONFIG_IP Channel : %d", dr_params->channel_no);
             break;
 
         default:
