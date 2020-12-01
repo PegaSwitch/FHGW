@@ -305,7 +305,7 @@ int32_t fhgw_fpga_general_calibration (uint32_t xcvr_base_addr, uint16_t loopbac
     return_value += fhgw_fpga_polling_for_calibration_status (xcvr_base_addr, 0x88); // check for bit 0;to indicate calibration successful.
 
     return return_value;
-}   
+}
 
 int32_t fhgw_fpga_pma_analog_reset (uint32_t xcvr_base_addr)
 {
@@ -609,9 +609,45 @@ int32_t fhgw_fpga_dr_init(void)
     // o_sl_rx_pcs_ready
     // o_sl_rx_block_lock
     // o_ehip_ready
+    
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH1, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH2, 0x1);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH3, 0x1);
+    
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH1, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH2, 0x8);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH3, 0x8);
+    
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0xC);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH1, 0xC);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH2, 0xC);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH3, 0xC);
+    
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH0, 0xE);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH1, 0xE);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH2, 0xE);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, FPGA_DATAPATH_CTRL_CH3, 0xE);
+    
     do {
         udelay(1);
        reg_value = FHGW_FPGA_REG_READ(fpga_dev->regs, FPGA_DATAPATH_STATUS_DR_CH0);
+    } while ((reg_value & 0x1) != 0x1);
+    
+    do {
+        udelay(1);
+       reg_value = FHGW_FPGA_REG_READ(fpga_dev->regs, FPGA_DATAPATH_STATUS_DR_CH1);
+    } while ((reg_value & 0x1) != 0x1);
+    
+    do {
+        udelay(1);
+       reg_value = FHGW_FPGA_REG_READ(fpga_dev->regs, FPGA_DATAPATH_STATUS_DR_CH2);
+    } while ((reg_value & 0x1) != 0x1);
+    
+    do {
+        udelay(1);
+       reg_value = FHGW_FPGA_REG_READ(fpga_dev->regs, FPGA_DATAPATH_STATUS_DR_CH3);
     } while ((reg_value & 0x1) != 0x1);
     
     return 0;
@@ -2634,12 +2670,12 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
             if (copy_to_user((ioctl_arg_t *)arg, &params, sizeof(ioctl_arg_t))) {
                 return -EACCES;
             }
-            printk("\n DRV DBG : Read Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
+            printk("\n DRV DBG : Read Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs + params.regaddr, params.offset, params.value);
             break;
 
         case FHGW_FPGA_WRITE_VALUE:
             FHGW_FPGA_REG_WRITE(fpga_dev->regs, params.regaddr + params.offset, params.value);
-            printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
+            printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs + params.regaddr, params.offset, params.value);
             break;
 
         case FHGW_FPGA_SERDES_LOOPON:
