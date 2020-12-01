@@ -2624,16 +2624,16 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
 
     switch (cmd) {
         case FHGW_FPGA_READ_VALUE:
-            params.value = FHGW_FPGA_REG_READ(params.regaddr, params.offset);
-            printk("\n DRV DBG : Read Base : 0x%x Offset : 0x%x Value : %d", params.regaddr, params.offset, params.value);
+            params.value = FHGW_FPGA_REG_READ(fpga_dev->regs, params.offset);
+            printk("\n DRV DBG : Read Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
             if (copy_to_user((ioctl_arg_t *)arg, &params, sizeof(ioctl_arg_t))) {
                 return -EACCES;
             }
             break;
 
         case FHGW_FPGA_WRITE_VALUE:
-            printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", params.regaddr, params.offset, params.value);
-            FHGW_FPGA_REG_WRITE(params.regaddr, params.offset, params.value);
+            printk("\n DRV DBG : Write Base : 0x%x Offset : 0x%x Value : %d", fpga_dev->regs, params.offset, params.value);
+            FHGW_FPGA_REG_WRITE(fpga_dev->regs, params.offset, params.value);
             break;
 
         case FHGW_FPGA_SERDES_LOOPON:
@@ -2647,7 +2647,7 @@ static long int fhgw_fpga_drv_ioctl(struct file *file, unsigned int cmd, unsigne
             dr_params = (fpga_dr_params *)params.data;
             fhgw_fpga_update_address(dr_params->channel_no, &regaddr);
             fhgw_fpga_dr_init();
-            fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, dr_params->linerate); 
+            fhgw_fpga_general_calibration (regaddr.xcvr_base_addr, dr_params->linerate);
             break;
 
         case FHGW_FPGA_DYNAMIC_RECONFIG_IP:
