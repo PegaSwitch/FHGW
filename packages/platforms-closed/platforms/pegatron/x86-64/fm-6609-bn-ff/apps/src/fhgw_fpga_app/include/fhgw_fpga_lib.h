@@ -2,6 +2,8 @@
 #define __H_FHGW_FPGALIB_H__
 
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -161,6 +163,9 @@
 #define FPGA_DATAPATH_CTRL_CH5			0x60010
 #define FPGA_REC_CLK_SEL_CH5			0x60014
 
+#define FHGW_FPGA_REG_READ(base, offset)                fpga_reg_read(base, offset)      
+#define FHGW_FPGA_REG_WRITE(base, offset, value)        fpga_reg_write(base, offset, value)      
+
 typedef enum {
     FPGA_RET_FAILED = -1,
     FPGA_RET_SUCCESS,
@@ -226,27 +231,24 @@ int32_t fpga_dev_open();
 void fpga_dev_close();
 
 int32_t fpga_reg_read(int32_t block, int32_t offset);
-int32_t fpga_reg_write(int32_t block, int32_t offset, int32_t value);
+int8_t fpga_reg_write(int32_t block, int32_t offset, int32_t value);
 
+int8_t fpga_dr_linerate_configure(int8_t channel, int8_t linerate);
 void set_fheth_tx_mac_address(int32_t portno, void *addr);
-
 void *fheth_get_port_speed(int32_t portno);
 void *fheth_set_port_speed(int32_t portno);
-
 void *fheth_get_tx_stats(int32_t portno);
 void *fheth_get_rx_stats(int32_t portno);
-
-int32_t get_cpri_port_mode(int32_t  portno);
-int32_t set_cpri_port_mode(int32_t  portno, int32_t port_mode);
-
-int32_t set_loopback_mode(int32_t  portno, int32_t loopback_mode);
+int8_t get_cpri_port_mode(int32_t  portno);
+int8_t set_cpri_port_mode(int32_t  portno, int32_t port_mode);
+int8_t set_loopback_mode(int32_t  portno, int32_t loopback_mode);
 
 void *get_roe_srcaddress(int32_t portno);
-int32_t set_roe_srcaddress(int32_t portno, void *addr);
+int8_t set_roe_srcaddress(int32_t portno, void *addr);
 char *get_roe_dstaddress(int32_t portno, void *addr);
-int32_t set_roe_dstaddress(int32_t portno, void *addr);
-int32_t get_roe_flowId(int32_t portno);
-int32_t set_roe_flowid(int32_t portno, int32_t flowid);
+int8_t set_roe_dstaddress(int32_t portno, void *addr);
+int8_t get_roe_flowId(int32_t portno);
+int8_t set_roe_flowid(int32_t portno, int32_t flowid);
 
 struct roe_agn_mode *get_roe_agnostic_mode(int32_t portno);
 int32_t set_roe_agnostic_mode(int32_t portno, struct roe_agn_mode *agm);
@@ -257,5 +259,9 @@ int32_t get_fpga_rev_ver();
 int32_t rd_scratch_pad_reg();
 int32_t wr_scratch_pad_reg(int32_t scr_val);
 int32_t fhgw_intr_status_reg();
+
+int8_t fpga_enable_ILB_without_calibration(uint8_t channelno);
+int8_t fpga_enable_ILB_with_calibration(uint8_t channelno);
+int8_t fpga_enable_ELB_with_calibration(uint8_t channelno);
 
 #endif
