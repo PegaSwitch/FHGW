@@ -60,7 +60,7 @@ int main()
 {
 	int Opt = 0;
 	int ret = 0;
-	int block = 0, offset = 0, value = 0;
+	int block = 0, channel = 0, offset = 0, value = 0;
 
 	do {
 		printf("\n 1. Open");
@@ -91,10 +91,12 @@ int main()
             case 2:
                 printf("\n Enter the block : ");
                 scanf("%x", &block);
+                printf("\n Enter the channel : ");
+                scanf("%x", &channel);
                 printf("\n Enter the offset : ");
                 scanf("%x", &offset);
 
-                value = fpga_reg_read(block, offset);
+                value = fpga_reg_read(block, channel, offset);
                 if (ret < 0) {
                     printf("\n Device Read Failed");
                 } else {
@@ -105,11 +107,13 @@ int main()
             case 3:
                 printf("\n Enter the block : ");
                 scanf("%x", &block);
+                printf("\n Enter the channel : ");
+                scanf("%x", &channel);
                 printf("\n Enter the Offset : ");
                 scanf("%x", &offset);
                 printf("\n Enter the Value : ");
                 scanf("%d", &value);
-                ret = fpga_reg_write(block, offset, value);
+                ret = fpga_reg_write(block, channel, offset, value);
                 if (ret < 0) {
                     printf("\n Device Write Failed");
                 } else {

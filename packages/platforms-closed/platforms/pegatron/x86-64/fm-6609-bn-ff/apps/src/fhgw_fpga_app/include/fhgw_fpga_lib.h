@@ -184,8 +184,16 @@
 #define FPGA_ROE_INT_EVENT                       0x0184
 #define FPGA_ROE_INT_STATUS                      0x0188
 
-#define FHGW_FPGA_REG_READ(base, offset)                fpga_reg_read(base, offset)      
-#define FHGW_FPGA_REG_WRITE(base, offset, value)        fpga_reg_write(base, offset, value)      
+#define FHGW_FPGA_REG_READ(base, channel, offset)                fpga_reg_read(base, channel, offset)      
+#define FHGW_FPGA_REG_WRITE(base, channel, offset, value)        fpga_reg_write(base, channel, offset, value)      
+
+typedef enum {
+    FPGA_SYSTEM_REGISTER_BLOCK = 0,
+    FPGA_DR_REGISTER_BLOCK,
+    FPGA_ETH_REGISTER_BLOCK,
+    FPGA_ROE_REGISTER_BLOCK,
+    FPGA_PTP_REGISTER_BLOCK,
+} block;
 
 typedef enum {
     FPGA_RET_FAILED = -1,
@@ -251,10 +259,10 @@ typedef enum {
 int32_t fpga_dev_open();
 void fpga_dev_close();
 
-int32_t fpga_reg_read(int32_t block, int32_t offset);
-int8_t fpga_reg_write(int32_t block, int32_t offset, int32_t value);
+int32_t fpga_reg_read(uint32_t block, uint8_t channelno, uint32_t offset);
+int8_t fpga_reg_write(uint32_t block, uint8_t channelno, uint32_t offset, uint32_t value);
 
-int8_t fpga_dr_linerate_configure(int8_t channel, int8_t linerate);
+int8_t fpga_dr_linerate_configure(uint8_t channel, uint8_t linerate);
 void set_fheth_tx_mac_address(int32_t portno, void *addr);
 void *fheth_get_port_speed(int32_t portno);
 void *fheth_set_port_speed(int32_t portno);
@@ -278,7 +286,7 @@ int8_t fhgw_led_ctrl(int32_t ledno, int32_t led_ctrl);
 
 int32_t get_fpga_rev_ver();
 int32_t rd_scratch_pad_reg();
-int32_t wr_scratch_pad_reg(int32_t scr_val);
+int32_t wr_scratch_pad_reg(uint32_t scr_val);
 int32_t fhgw_intr_status_reg();
 
 int8_t fpga_enable_ILB_without_calibration(uint8_t channelno);
