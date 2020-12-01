@@ -100,7 +100,7 @@ int main()
                 if (ret < 0) {
                     printf("\n Device Read Failed");
                 } else {
-                    printf("\n Read Success Block :0x%x Offset : 0x%x Value : 0x%x", block, offset, value);
+                    printf("\n Read Success... Block :0x%x Offset : 0x%x Value : 0x%x", block, offset, value);
                 }
                 break;
 
@@ -117,7 +117,7 @@ int main()
                 if (ret < 0) {
                     printf("\n Device Write Failed");
                 } else {
-                    printf("\nWrite Success block : %x Offset : 0x%x Value : 0x%x", block, offset, value);
+                    printf("\nWrite Success... Block : %x Offset : 0x%x Value : 0x%x", block, offset, value);
                 }
                 break;
 

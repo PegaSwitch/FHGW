@@ -114,7 +114,7 @@ int32_t fpga_reg_read(uint32_t block, uint8_t channelno, uint32_t offset)
         return FPGA_RET_FAILED;
 	}
 
-    printf("\n LIB DBG : Read Reg Addr : 0x%x value : %d", params.regaddr, params.value);
+    printf("\n LIB DBG : Read   Reg Addr : 0x%x Offset : 0x%x Value : %d", params.regaddr, params.offset, params.value);
 
 	return params.value;
 }
@@ -134,7 +134,7 @@ int8_t fpga_reg_write(uint32_t block, uint8_t channelno, uint32_t offset, uint32
         return FPGA_RET_FAILED;
 	}
 
-    printf("\n LIB DBG : Write Reg Addr : 0x%x value : %d", params.regaddr, params.value);
+    printf("\n LIB DBG : Write  Reg Addr : 0x%x Offset : 0x%x Value : %d", params.regaddr, params.offset, params.value);
 
     return FPGA_RET_SUCCESS;
 }
@@ -200,6 +200,8 @@ int8_t fpga_general_calibration(uint8_t channel, uint8_t value)
 
 int8_t fpga_enable_ILB_without_calibration(uint8_t channelno)
 {
+    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BLOCK, 0, fhgw_fpga_dpctrl[channelno], 0x8);
+
     if(fpga_serdes_loopon(channelno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
 
@@ -208,6 +210,8 @@ int8_t fpga_enable_ILB_without_calibration(uint8_t channelno)
 
 int8_t fpga_enable_ILB_with_calibration(uint8_t channelno)
 {
+    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BLOCK, 0, fhgw_fpga_dpctrl[channelno], 0x8);
+    
     if(fpga_serdes_loopon(channelno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
 
@@ -222,6 +226,8 @@ int8_t fpga_enable_ILB_with_calibration(uint8_t channelno)
 
 int8_t fpga_enable_ELB_with_calibration(uint8_t channelno)
 {
+    FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BLOCK, 0, fhgw_fpga_dpctrl[channelno], 0x8);
+    
     if (FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BLOCK, 0, fhgw_fpga_dpctrl[channelno], 0xC) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
 
