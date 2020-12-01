@@ -2733,13 +2733,13 @@ fhgw_fpga_dev *fhgw_fpga_setup_dev(struct pci_dev *pdev)
 
 	pci_set_master(pdev);
 
-	fpga_dev->regs = ioremap(pci_resource_start(pdev, 0), FHGW_FPGA_REG_SIZE);
+	fpga_dev->regs = ioremap_nocache(pci_resource_start(pdev, 0), FHGW_FPGA_REG_SIZE);
 	if (!fpga_dev->regs)	{
 		dev_err(&pdev->dev,"PCI memory remap failure\r\n");
 		goto out_release_regions;
 	}
 
-	printk("bar0: %lx\r\n", (unsigned int *)fpga_dev->regs);
+	printk("BASE ADDRESS: %lx\r\n", (unsigned int *)fpga_dev->regs);
 
     if (fhgw_fpga_drv_setup_chardev())
             goto out_release_regions;
