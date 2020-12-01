@@ -157,75 +157,44 @@ int32_t wr_scratch_pad_reg(uint32_t scr_val)
 int8_t fpga_dr_linerate_configure(uint8_t channel, uint8_t linerate)
 {	
 	ioctl_arg_t params;
-    fpga_dr_params *dr_params;
    
-    dr_params = (fpga_dr_params *)malloc(sizeof(fpga_dr_params));
-    if (dr_params == NULL)
-        return FPGA_RET_FAILED;
-
-    memset(&params, 0, sizeof(ioctl_arg_t));
-
-	dr_params->channel_no = channel;
-	dr_params->linerate = linerate;
-
-    params.data = dr_params;
+	params.dr_params.channel_no = channel;
+	params.dr_params.linerate = linerate;
 
 	if(ioctl(fd, FHGW_FPGA_DYNAMIC_RECONFIG_IP, &params) < 0) {
 		printf("Error in ioctl dr configure");
-        free(dr_params);
         return FPGA_RET_FAILED;
 	}
 
-    free(dr_params);
     return FPGA_RET_SUCCESS;
 }
 
 int8_t fpga_serdes_loopon(uint8_t channelno) 
 {
     ioctl_arg_t params;
-    fpga_dr_params *dr_params;
 
-    dr_params = (fpga_dr_params *)malloc(sizeof(fpga_dr_params));
-    if (dr_params == NULL)
-        return FPGA_RET_FAILED;
-
-    memset(&params, 0, sizeof(ioctl_arg_t));
-    dr_params->channel_no = channelno;
-
-    params.data = dr_params;
+    params.dr_params.channel_no = channelno;
 
     if(ioctl(fd, FHGW_FPGA_SERDES_LOOPON, &params) < 0) {
         printf("Error in ioctl serdes loop on");
-        free(dr_params);
         return FPGA_RET_FAILED;
     }
 
-    free(dr_params);
     return FPGA_RET_SUCCESS;
 }
 
 int8_t fpga_general_calibration(uint8_t channel, uint8_t value)
 {
     ioctl_arg_t params;
-    fpga_dr_params *dr_params;
 
-    dr_params = (fpga_dr_params *)malloc(sizeof(fpga_dr_params));
-    if (dr_params == NULL)
-        return FPGA_RET_FAILED;
-
-    memset(&params, 0, sizeof(ioctl_arg_t));
-    dr_params->channel_no = channel;
-    dr_params->linerate = value;
-
-    params.data = dr_params;
+    params.dr_params.channel_no = channel;
+    params.dr_params.linerate = value;
 
     if(ioctl(fd, FHGW_FPGA_GENERAL_CALIBRATION, &params) < 0) {
         printf("Error in ioctl general calibration");
-        free(dr_params);
         return FPGA_RET_FAILED;
     }
 
-    free(dr_params);
     return FPGA_RET_SUCCESS;
 }
 
