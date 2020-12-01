@@ -150,6 +150,8 @@
 #define FPGA_DATAPATH_CTRL_CH5			0x60010
 #define FPGA_REC_CLK_SEL_CH5			0x60014
 
+#define FPGA_DATAPATH_MODE_SEL          0x1 << 0x3
+
 /* ROE Registers */
 #define FPGA_ROE_REG_IP_VERSION                  0x0000
 #define FPGA_ROE_AGNOSTIC_MODE_CONFIGURATION     0x0004
@@ -218,9 +220,9 @@ struct roe_agn_mode
 
 typedef enum {
 	E25G_PTP_FEC,
-	CPRI_9p8G_tunneling,
-	CPRI_4p9G_tunneling,
 	CPRI_2p4G_tunneling,
+	CPRI_4p9G_tunneling,
+	CPRI_9p8G_tunneling,
 	CPRI_10G_TUNNEL,
 } port_mode;
 

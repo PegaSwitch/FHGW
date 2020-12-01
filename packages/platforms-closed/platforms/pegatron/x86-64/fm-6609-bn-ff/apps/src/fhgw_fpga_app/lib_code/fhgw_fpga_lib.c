@@ -23,6 +23,24 @@ const uint32_t *fhgw_fpga_roeChannel[] = {
     FPGA_ROE_CH5_BASE
 };
 
+const uint32_t *fhgw_fpga_port_mode[] = {
+    FPGA_MODE_SEL_CH0,
+    FPGA_MODE_SEL_CH1,
+    FPGA_MODE_SEL_CH2,
+    FPGA_MODE_SEL_CH3,
+    FPGA_MODE_SEL_CH4,
+    FPGA_MODE_SEL_CH5
+};
+
+const uint32_t *fhgw_fpga_port_loopback[] = {
+    FPGA_LOOPBACK_SEL_CH0,
+    FPGA_LOOPBACK_SEL_CH1,
+    FPGA_LOOPBACK_SEL_CH2,
+    FPGA_LOOPBACK_SEL_CH3,
+    FPGA_LOOPBACK_SEL_CH4,
+    FPGA_LOOPBACK_SEL_CH5
+};
+
 int32_t fpga_dev_open()
 {
     fd = open(FHGW_FPGA_DEV_NAME, O_RDWR);
@@ -44,7 +62,8 @@ int32_t fpga_reg_read(int32_t block, int32_t offset)
 
     memset(&params, 0, sizeof(ioctl_arg_t));
 
-	params.regaddr = block + offset;
+	params.regaddr = block;
+	params.offset = offset;
 	params.value = 0;
 
 	if(ioctl(fd, FHGW_FPGA_READ_VALUE, &params) < 0) {
@@ -63,7 +82,8 @@ int8_t fpga_reg_write(int32_t block, int32_t offset, int32_t value)
 
     memset(&params, 0, sizeof(ioctl_arg_t));
 
-	params.regaddr = block + offset;
+	params.regaddr = block;
+	params.offset = offset;
 	params.value = value;
 
 	if(ioctl(fd, FHGW_FPGA_WRITE_VALUE, &params) < 0) {
@@ -226,17 +246,16 @@ void *fheth_get_rx_stats(int32_t portno)
 
 int8_t get_cpri_port_mode(int32_t  portno)
 {
-
+    return (FHGW_FPGA_REG_READ(FPGA_SYSTEM_REGISTER_BASE, fhgw_fpga_port_mode[portno]) & FPGA_DATAPATH_MODE_SEL);
 }
 
 int8_t set_cpri_port_mode(int32_t  portno, int32_t port_mode)
 {
-
+    return (FHGW_FPGA_REG_READ(FPGA_SYSTEM_REGISTER_BASE, fhgw_fpga_port_mode[portno]) & (0x1 << 3));
 }
 
 int8_t set_loopback_mode(int32_t  portno, int32_t loopback_mode)
 {
-
 }
 
 void *get_roe_srcaddress(int32_t portno)
