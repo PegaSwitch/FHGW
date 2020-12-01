@@ -77,19 +77,6 @@
 #define FPGA_VERSION_MINOR				0x0
 #define FPGA_VERSION_MAJOR				0x1 << 0x8
 			
-#define FPGA_LED_CPRI_0_CTRL			0x0
-#define FPGA_LED_CPRI_1_CTRL			0x1 << 0x2
-#define FPGA_LED_CPRI_2_CTRL			0x1 << 0x4
-#define FPGA_LED_CPRI_3_CTRL			0x1 << 0x6
-#define FPGA_LED_CPRI_4_CTRL			0x1 << 0x8
-#define FPGA_LED_CPRI_5_CTRL			0x1 << 0xA
-
-#define FPGA_LED_USER_0_CTRL			0x0
-#define FPGA_LED_USER_1_CTRL			0x1 << 0x2
-#define FPGA_LED_USER_2_CTRL			0x1 << 0x4
-#define FPGA_LED_USER_3_CTRL			0x1 << 0x6
-#define FPGA_LED_USER_4_CTRL			0x1 << 0x8
-
 #define FPGA_INTR_LINK_DOWN				0x0
 #define FPGA_INTR_ROE					0x1 << 0x10
 
@@ -162,6 +149,38 @@
 #define FPGA_DATAPATH_STATUS_ETH_CH5	0x6000C
 #define FPGA_DATAPATH_CTRL_CH5			0x60010
 #define FPGA_REC_CLK_SEL_CH5			0x60014
+
+/* ROE Registers */
+#define FPGA_ROE_REG_IP_VERSION                  0x0000
+#define FPGA_ROE_AGNOSTIC_MODE_CONFIGURATION     0x0004
+#define FPGA_ROE_SOURCE_ADDRESS_LSB              0x010C
+#define FPGA_ROE_SOURCE_ADDRESS_MSB              0x0110
+#define FPGA_ROE_DESTINATION_ADDRESS_LSB         0x0114
+#define FPGA_ROE_DESTINATION_ADDRESS_MSB         0x0118
+#define FPGA_ROE_USE_SEQUENCE                    0x011C
+#define FPGA_ROE_FLOW_ID                         0x0120
+#define FPGA_ROE_PACKET_LENGTH                   0x0124
+#define FPGA_ROE_TX_A_FILL_LEVEL                 0x0138
+#define FPGA_ROE_TX_S_FILL_LEVEL                 0x013C
+#define FPGA_ROE_RX_A_FILL_LEVEL                 0x0140
+#define FPGA_ROE_RX_S_FILL_LEVEL                 0x0144
+#define FPGA_ROE_NETWORK_DELAY                   0x0148
+#define FPGA_ROE_ACCEPT_TIME_WINDOW              0x014C
+#define FPGA_ROE_OUT_OF_WINDOW_CNT               0x0150
+#define FPGA_ROE_SEQNUM_ERR_CNT                  0x0154
+#define FPGA_ROE_DROP_OF_PCKTS_CNT               0x0158
+#define FPGA_ROE_INJECT_PCKTS_CNT                0x015C
+#define FPGA_ROE_DBG_TX_A_MAX                    0x0160
+#define FPGA_ROE_DBG_TX_A_MIN                    0x0164
+#define FPGA_ROE_DBG_TX_S_MAX                    0x0168
+#define FPGA_ROE_DBG_TX_S_MIN                    0x016C
+#define FPGA_ROE_DBG_RX_A_MAX                    0x0170
+#define FPGA_ROE_DBG_RX_A_MIN                    0x0174
+#define FPGA_ROE_DBG_RX_S_MAX                    0x0178
+#define FPGA_ROE_DBG_RX_S_MIN                    0x017C
+#define FPGA_ROE_INT_MASK                        0x0180
+#define FPGA_ROE_INT_EVENT                       0x0184
+#define FPGA_ROE_INT_STATUS                      0x0188
 
 #define FHGW_FPGA_REG_READ(base, offset)                fpga_reg_read(base, offset)      
 #define FHGW_FPGA_REG_WRITE(base, offset, value)        fpga_reg_write(base, offset, value)      
@@ -253,7 +272,7 @@ int8_t set_roe_flowid(int32_t portno, int32_t flowid);
 struct roe_agn_mode *get_roe_agnostic_mode(int32_t portno);
 int32_t set_roe_agnostic_mode(int32_t portno, struct roe_agn_mode *agm);
 
-int32_t fhgw_led_ctrl(int32_t ledno, int32_t led_ctrl);
+int8_t fhgw_led_ctrl(int32_t ledno, int32_t led_ctrl);
 
 int32_t get_fpga_rev_ver();
 int32_t rd_scratch_pad_reg();
