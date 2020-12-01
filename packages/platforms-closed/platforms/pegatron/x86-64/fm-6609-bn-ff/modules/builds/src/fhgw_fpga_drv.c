@@ -2793,6 +2793,8 @@ fhgw_fpga_init_module(void)
 	if (status)
 		return -1;
 
+    printk("\n FHGW FPGA DRIVER VERSION : %d.%d", FHGW_FPGA_DRV_VERSION, FHGW_FPGA_DRV_SUBVERSION);
+
 	return 0;
 }
 
