@@ -700,9 +700,9 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     // 4C[1] scr: Set to enable PN-5280 scrambling/descrambling
     //            Must be set to 1 when RSFEC_CORE_CFG.frac = frac4 and RSFEC_LANE_CFG.fc = 1 (i.e. 32GFC),
     //            otherwise it must be set to 0
-    rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x4C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x4C);
     wdata = (rdata0 & 0xFFFFFFFC) | 0x03;
-    FHGW_FPGA_REG_WRITE(rsfec_base_addr, 0x4C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, rsfec_base_addr + 0x4C, wdata);
     
     // ============================= EHIP CONFIG================================
     // switch ehip_mode
@@ -711,9 +711,9 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     // 1:When the PCS receives an am_insert signal from the user or the MAC,
     //   it will replace the corresponding blocks with alignment markers
     // 0:The TX PCS will ignore the am_insert signal
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x30E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x30E);
     wdata = (rdata0 & 0xFFFFFFEF) | 0x0;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x30E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x30E, wdata);
     
     // phy_ehip_mode_muxes
     // 30D[5:3] Select input to TX PCS
@@ -721,9 +721,9 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     // 1:TX PLD Interface
     // 2:RX PCS
     // 3-7:Reserved
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x30D);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x30D);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x08;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x30D, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x30D, wdata);
     
     // tx_pld_conf
     // 350[2:0] tx_ehip_mode
@@ -733,9 +733,9 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface
     // 3h3: PCS66 interface with forced encoder and scrambler bypass
     // 3h4: PCS66 interface
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x02;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x350, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x350, wdata);
     
     // rx_pld_conf
     // 355[2:0] rx_ehip_mode
@@ -745,9 +745,9 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface <--
     // 3h3: PCS66 interface for OTN (forced descrambler bypass)
     // 3h4: PCS66 interface (descrambler optional)
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x02;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x355, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x355, wdata);
     
     // switch ehip_rate
     // txmac_ehip_cfg
@@ -758,18 +758,18 @@ int32_t fhgw_25gptpfec_to_24gcpri(uint32_t eth_base_addr,
     // 2:40G
     // 3:25G
     // 4:10G
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x40B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x40B);
     wdata = (rdata0 & 0xFFFFFE3F) | 0x1C0;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x40B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x40B, wdata);
     
     // ============================= CPRI SOFT CONFIG================================
     
     //[3:0] = cpri_rate_sel;
     //[4] = cpri_fec_en;
     //[9:5] = i_sl_rx_bitslipboundary_sel;
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0); 
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0); 
     wdata = (rdata0 & 0xE0) | 0x1B;
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
     
     //=============================== PMA CONFIG ===============================
     
@@ -870,9 +870,9 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     // ============================= RS-FEC CONFIG =============================
     // Change FEC mode to CPRI (lane 3)
     // [1]core_scrambling3, [0]core_fibre_channel3
-    rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x4C);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x4C);
     wdata = (rdata0 & 0xFFFFFFFC) | 0x0;
-    FHGW_FPGA_REG_WRITE(rsfec_base_addr, 0x4C, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, rsfec_base_addr + 0x4C, wdata);
 
     // ============================= EHIP CONFIG================================
     //0x30E: switch ehip_mode, [9]use_aligner, [4]use_am_insert, [3]use_stripper
@@ -881,9 +881,9 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     // 1:When the PCS receives an am_insert signal from the user or the MAC,
     //   it will replace the corresponding blocks with alignment markers
     // 0:The TX PCS will ignore the am_insert signal
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x30E);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x30E);
     wdata = (rdata0 & 0xFFFFFFEF) | 0x10;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x30E, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x30E, wdata);
 
     // phy_ehip_mode_muxes
     // 30D[5:3] Select input to TX PCS
@@ -891,9 +891,9 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     // 1:TX PLD Interface
     // 2:RX PCS
     // 3-7:Reserved
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x30D);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x30D);
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x30D, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x30D, wdata);
 
     // tx_pld_conf
     // 350[2:0] tx_ehip_mode
@@ -903,9 +903,9 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface
     // 3h3: PCS66 interface with forced encoder and scrambler bypass
     // 3h4: PCS66 interface
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x1;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x350, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x350, wdata);
 
     // rx_pld_conf
     // 355[2:0] rx_ehip_mode
@@ -915,9 +915,9 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface
     // 3h3: PCS66 interface for OTN (forced descrambler bypass)
     // 3h4: PCS66 interface (descrambler optional)
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x1;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x355, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x355, wdata);
 
     // switch ehip_rate - txmac_ehip_cfg
     // 40B[8:6] flowreg_rate
@@ -927,9 +927,9 @@ int32_t fhgw_24gcpri_to_25gptpfec(uint32_t eth_base_addr,
     // 2:40G
     // 3:25G
     // 4:10G
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x40B);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x40B);
     wdata = (rdata0 & 0xFFFFFE3F) | 0x0C0;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x40B, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x40B, wdata);
 
     //============================== PMA CONFIG ================================
 
@@ -1029,20 +1029,20 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     // ============================ RS-FEC ===================================
     // rsfec_top_clk_cfg
     // fec_lane_ena 1xxx -> 0xxx
-    rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x5);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x5);
     // Single lane - lane 3
     wdata = (rdata0 & 0xFFFFFFF7) | 0x0;
-    FHGW_FPGA_REG_WRITE(rsfec_base_addr, 0x5, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x5);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, rsfec_base_addr + 0x5, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x5);
 
     // rsfec_top_tx_cfg
     // core_tx_in_sel3 [14:12] 001 -> 110 ( RSFEC TX select for Lane 3)
     // 3'b110 : FEC Lane Disabled - tie inputs to 0
     // 3'b001 : FEC Lane enabled - select EHIP Lane Tx data
-    rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x11);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x11);
     wdata = (rdata0 & 0xFFFFFF8F) | 0x60;
-    FHGW_FPGA_REG_WRITE(rsfec_base_addr, 0x11, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x11);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, rsfec_base_addr + 0x11, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x11);
 
     // rsfec_top_rx_cfg
     // core_rx_out_sel3 [12:13] 01 -> 00
@@ -1050,13 +1050,13 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     // core_rx_out_sel1 [5:4]
     // core_rx_out_sel0 [1:0]
     //only configure active lane 3 through 0x15
-    //rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x14);
+    //rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x14);
     //wdata = (rdata0 & 0xFFFFFFCC) | 0x0;
-    //FHGW_FPGA_REG_WRITE(rsfec_base_addr, 0x14, wdata);
-    //rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x14);
-    rdata0 = FHGW_FPGA_REG_READ(rsfec_base_addr, 0x15);
+    //FHGW_FPGA_REG_WRITE(fpga_dev->regs, rsfec_base_addr + 0x14, wdata);
+    //rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x14);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, rsfec_base_addr + 0x15);
     wdata = (rdata0 & 0xFFFFFFCC) | 0x0;
-    FHGW_FPGA_REG_WRITE(rsfec_base_addr, 0x15, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, rsfec_base_addr + 0x15, wdata);
 
     // ============================ PMA config ===================================
     // xcvrif_ctrl0
@@ -1106,10 +1106,10 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     // phy_ehip_pcs_modes
     // use_aligner     [9]   0  -> 1
     // use_am_insert   [4]   1  -> 0
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, FHGW_FPGA_PHY_EHIP_PCS_MODES);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + FHGW_FPGA_PHY_EHIP_PCS_MODES);
     wdata = (rdata0 & 0xFFFFFDE7) | 0x200;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, FHGW_FPGA_PHY_EHIP_PCS_MODES, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, FHGW_FPGA_PHY_EHIP_PCS_MODES);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + FHGW_FPGA_PHY_EHIP_PCS_MODES, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + FHGW_FPGA_PHY_EHIP_PCS_MODES);
 
     // phy_ehip_mode_muxes
     // 30D txpcsmux_sel[5:3] 000 -> 001
@@ -1118,10 +1118,10 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     // 1:TX PLD Interface
     // 2:RX PCS
     // 3-7:Reserved
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x30D);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x30D);
     wdata = (rdata0 & 0xFFFFFFC7) | 0x08; // {readdata[31:6],3'd1,readdata[2:0]}
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x30D, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x30D);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x30D, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x30D);
 
     // tx_pld_conf
     // 350 tx_ehip_mode[2:0] 001 -> 010
@@ -1131,10 +1131,10 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface <--
     // 3h3: PCS66 interface with forced encoder and scrambler bypass
     // 3h4: PCS66 interface
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x02; // {readdata[31:3],3'd2}
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x350, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x350, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
 
     // rx_pld_conf
     // 355 rx_ehip_mode[2:0] 001 -> 010
@@ -1144,20 +1144,20 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface <--
     // 3h3: PCS66 interface for OTN (forced descrambler bypass)
     // 3h4: PCS66 interface (descrambler optional)
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x02; // {readdata[31:3],3'd2}
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x355, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x355, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
 
     // txmac_ehip_cfg
     // flowreg_rate    [8:6]    3  -> 7
     // am_width        [5:3]    4  -> 1
 
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, FHGW_FPGA_TXMAC_EHIP_CFG);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + FHGW_FPGA_TXMAC_EHIP_CFG);
     // Mask (AND) bit location that need update to 0, then OR with desired value
     wdata = (rdata0 & 0xFFFFFE07) | 0x1C8;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, FHGW_FPGA_TXMAC_EHIP_CFG, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, FHGW_FPGA_TXMAC_EHIP_CFG);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + FHGW_FPGA_TXMAC_EHIP_CFG, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + FHGW_FPGA_TXMAC_EHIP_CFG);
 
    // ============================= CPRI SOFT CONFIG================================
 
@@ -1165,9 +1165,9 @@ int32_t fhgw_25gptpfec_to_10gcpri(uint32_t eth_base_addr,
          //[4] = cpri_fec_en;
         //[9:5] = i_sl_rx_bitslipboundary_sel;
         //24G+FEC = 1B, 10G NoFEC = 9
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 & 0xE0) | 0x9;
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
     
     //================================= PMA CONFIG =================================
 
@@ -1552,14 +1552,14 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x11);
  
     // TX DATA PATH MUX
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x7;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x350, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x350, wdata);
 
     // RX DATA PATH MUX
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x7;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x355, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x355, wdata);
 
   // ============================= CPRI SOFT CONFIG================================
 
@@ -1567,9 +1567,9 @@ int32_t fhgw_25gptpfec_to_9p8gcpri(uint32_t eth_base_addr,
          //[4] = cpri_fec_en;
         //[9:5] = i_sl_rx_bitslipboundary_sel;
         //24G+FEC = 1B, 10G NoFEC = 9 , 9G =6
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 & 0xE0) | 0x6;
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
 
     // --------------------- Reconfig to CPRI 9p8g end -------------------------
 
@@ -1964,14 +1964,14 @@ int32_t fhgw_25gptpfec_to_4p9gcpri(uint32_t eth_base_addr,
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x11);
     
     // TX DATA PATH MUX
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x7;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x350, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x350, wdata);
     
     // RX DATA PATH MUX
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x7;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x355, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x355, wdata);
     
     // --------------------- Reconfig to CPRI 4p9g end -------------------------
     
@@ -2035,9 +2035,9 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
          //[3:0] = cpri_rate_sel;
          //[4] = cpri_fec_en;
         //[9:5] = i_sl_rx_bitslipboundary_sel;
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 & 0xE0) | 0x2;
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
     
     // ------------------------- Reconfig to CPRI 2p4g -------------------------
 
@@ -2361,14 +2361,14 @@ int32_t fhgw_25gptpfec_to_2p4gcpri(uint32_t eth_base_addr,
     fhgw_fpga_tx_rx_width_mode (xcvr_base_addr, 0x11);
    
     // TX DATA PATH MUX
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x7;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x350, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x350, wdata);
 
     // RX DATA PATH MUX
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x7;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x355, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x355, wdata);
 
     // --------------------- Reconfig to CPRI 2p4g end -------------------------
 
@@ -2414,9 +2414,9 @@ int32_t fhgw_9p8gcpri_to_9p8gtunneling(uint32_t eth_base_addr,
         //[9:5] = i_sl_rx_bitslipboundary_sel;
         //24G+FEC = 1B, 10G NoFEC = 9 , 9G =6
     	//[31] = tunneling_enabled;
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 | 0x80000000);
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
     
     // Reset AIB - Assert
     rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
@@ -2454,9 +2454,9 @@ int32_t fhgw_4p9gcpri_to_4p9gtunneling(uint32_t eth_base_addr,
         //[9:5] = i_sl_rx_bitslipboundary_sel;
         //24G+FEC = 1B, 10G NoFEC = 9 , 9G =6
     	//[31] = tunneling_enabled;
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 | 0x80000000);
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
     
     // Reset AIB - Assert
     rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
@@ -2492,9 +2492,9 @@ int32_t fhgw_2p4gcpri_to_2p4gtunneling(uint32_t eth_base_addr,
         //[9:5] = i_sl_rx_bitslipboundary_sel;
         //24G+FEC = 1B, 10G NoFEC = 9 , 9G =6
     	//[31] = tunneling_enabled;
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 | 0x80000000);
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
     
     // Reset AIB - Assert
     rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, xcvr_base_addr + 0x400E2);
@@ -2529,10 +2529,10 @@ int32_t fhgw_10gcpri_to_10gcpritunnel(uint32_t eth_base_addr,
     // use_striper [3]   0  -> 1
     // use_scr     [1]   1  -> 0
     // use_enc     [0]   1  -> 0
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, FHGW_FPGA_PHY_EHIP_PCS_MODES);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + FHGW_FPGA_PHY_EHIP_PCS_MODES);
     wdata = (rdata0 & 0xFFFFFFF4) | 0x8;
-    FHGW_FPGA_REG_WRITE(eth_base_addr, FHGW_FPGA_PHY_EHIP_PCS_MODES, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, FHGW_FPGA_PHY_EHIP_PCS_MODES);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + FHGW_FPGA_PHY_EHIP_PCS_MODES, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + FHGW_FPGA_PHY_EHIP_PCS_MODES);
 
     // tx_pld_conf
     // 350 tx_ehip_mode[2:0] 001 -> 010
@@ -2542,10 +2542,10 @@ int32_t fhgw_10gcpri_to_10gcpritunnel(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface <--
     // 3h3: PCS66 interface with forced encoder and scrambler bypass
     // 3h4: PCS66 interface
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x03; // {readdata[31:3],3'd2}
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x350, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x350);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x350, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x350);
 
     // rx_pld_conf
     // 355 rx_ehip_mode[2:0] 001 -> 010
@@ -2555,10 +2555,10 @@ int32_t fhgw_10gcpri_to_10gcpritunnel(uint32_t eth_base_addr,
     // 3h2: PCS (MII) interface <--
     // 3h3: PCS66 interface for OTN (forced descrambler bypass)
     // 3h4: PCS66 interface (descrambler optional)
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
     wdata = (rdata0 & 0xFFFFFFF8) | 0x03; // {readdata[31:3],3'd2}
-    FHGW_FPGA_REG_WRITE(eth_base_addr, 0x355, wdata);
-    rdata0 = FHGW_FPGA_REG_READ(eth_base_addr, 0x355);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, eth_base_addr + 0x355, wdata);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, eth_base_addr + 0x355);
 
     // ============================= CPRI SOFT CONFIG================================
 
@@ -2567,9 +2567,9 @@ int32_t fhgw_10gcpri_to_10gcpritunnel(uint32_t eth_base_addr,
     //[9:5] = i_sl_rx_bitslipboundary_sel;
     //[31] = cpri_tunneling_en;
     //24G+FEC = 1B, 10G NoFEC = 9
-    rdata0 = FHGW_FPGA_REG_READ(cprisoft_base_addr, 0x0);
+    rdata0 = FHGW_FPGA_REG_READ(fpga_dev->regs, cprisoft_base_addr + 0x0);
     wdata = (rdata0 & 0x7FFFFFFF ) | 0x80000000;
-    FHGW_FPGA_REG_WRITE(cprisoft_base_addr, 0x0, wdata);
+    FHGW_FPGA_REG_WRITE(fpga_dev->regs, cprisoft_base_addr + 0x0, wdata);
 
     // Overwrite for MAC+PCS loop-back configuration
     //serdes_loop_on (xcvr_base_addr);
