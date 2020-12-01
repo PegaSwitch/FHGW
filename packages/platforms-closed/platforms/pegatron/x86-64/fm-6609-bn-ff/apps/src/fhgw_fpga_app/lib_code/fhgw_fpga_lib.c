@@ -198,6 +198,18 @@ int8_t fpga_general_calibration(uint8_t channel, uint8_t value)
     return FPGA_RET_SUCCESS;
 }
 
+int8_t fpga_dr_init()
+{
+    ioctl_arg_t params;
+
+    if(ioctl(fd, FHGW_FPGA_DR_INIT, &params) < 0) {
+        printf("Error in ioctl dr init");
+        return FPGA_RET_FAILED;
+    }
+
+    return FPGA_RET_SUCCESS;
+}
+
 int8_t fpga_enable_ILB_without_calibration(uint8_t channelno)
 {
     FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BLOCK, 0, fhgw_fpga_dpctrl[channelno], 0x8);

@@ -10,28 +10,32 @@ int8_t fpga_dr_config_func()
     scanf("%d", &channel_no);
 
     do {
-        printf("\n 1. Enable Internal loop back without calibration");
-        printf("\n 2. Enable Internal loop back with calibration");
-        printf("\n 3. Enable External loop back with calibration");
-        printf("\n 4. DR - Linerate change");
-        printf("\n 5. Exit");
+        printf("\n 1. DR Init");
+        printf("\n 2. Enable Internal loop back without calibration");
+        printf("\n 3. Enable Internal loop back with calibration");
+        printf("\n 4. Enable External loop back with calibration");
+        printf("\n 5. DR - Linerate change");
+        printf("\n 6. Exit");
         printf("\nEnter the Option : ");
         scanf("%d", &opt);
 
-        if (opt == 5)
+        if (opt == 6)
             break;
 
         switch(opt) {
             case 1:
-                fpga_enable_ILB_without_calibration(channel_no);
+                fpga_dr_init();
                 break;
             case 2:
-                fpga_enable_ILB_with_calibration(channel_no);
+                fpga_enable_ILB_without_calibration(channel_no);
                 break;
             case 3:
-                fpga_enable_ELB_with_calibration(channel_no);
+                fpga_enable_ILB_with_calibration(channel_no);
                 break;
             case 4:
+                fpga_enable_ELB_with_calibration(channel_no);
+                break;
+            case 5:
                 printf("\n Line Rate Menu");
                 printf("\n 1. CPRI_10G_TUNNEL");
                 printf("\n 2. CPRI_2p4G_tunneling");

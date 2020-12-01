@@ -289,6 +289,7 @@ int32_t rd_scratch_pad_reg();
 int32_t wr_scratch_pad_reg(uint32_t scr_val);
 int32_t fhgw_intr_status_reg();
 
+int8_t fpga_dr_init();
 int8_t fpga_enable_ILB_without_calibration(uint8_t channelno);
 int8_t fpga_enable_ILB_with_calibration(uint8_t channelno);
 int8_t fpga_enable_ELB_with_calibration(uint8_t channelno);
