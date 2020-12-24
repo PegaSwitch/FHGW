@@ -1,0 +1,29 @@
+From 89a380a4b9f904d9238016259f88a4353dc73247 Mon Sep 17 00:00:00 2001
+From: Max Lee <max_lee@pegatroncorp.com>
+Date: Tue, 25 Aug 2020 10:09:29 +0000
+Subject: [PATCH] modify Makefile to build CPSS under ONL...
+
+- add external Linux header path
+- remove -Werror
+---
+ Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 4f021c98..aa965a42 100644
+--- a/Makefile
++++ b/Makefile
+@@ -555,8 +555,8 @@ ifneq ($(GM),)
+   VC_CFLAGS += -MTd
+ endif
+ else
+-CFLAGS := -Wall -Wextra -Werror -Wno-error=cpp $(CAST) -ansi $(TARGET_SPECIFIC_CFLAGS) -fno-builtin -funroll-loops \
+-           $(SHARED_CFLAGS) $(addprefix -I, $(CPSS_INC_PATH)) $(CFLAGS)
++CFLAGS := -Wall -Wextra -Wno-error=cpp $(CAST) -ansi $(TARGET_SPECIFIC_CFLAGS) -fno-builtin -funroll-loops \
++           $(SHARED_CFLAGS) $(addprefix -I, $(KERNEL_INC_PATH) $(CPSS_INC_PATH)) $(CFLAGS)
+ #-Wno-cast-function-type  -Wextra
+ endif
+ 
+-- 
+2.29.2
+
