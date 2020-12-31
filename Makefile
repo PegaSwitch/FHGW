@@ -40,6 +40,16 @@ rebuild:
 modclean:
 	rm -rf $(ONL)/make/modules/modules.*
 
+sdk_list := $(shell find $(ONLBASE)/packages/platforms-closed/platforms/pegatron -type d -name sdk)
+
+distclean:
+	@sudo git clean -dfx
+	@for d in $(sdk_list); do					\
+	    rm -fr $$d/builds/$(ONL_DEBIAN_SUITE);			\
+	done
+	@$(ONLBASE)/tools/cleanup-modules.sh
+	@git reset --hard
+
 endif
 endif
 
