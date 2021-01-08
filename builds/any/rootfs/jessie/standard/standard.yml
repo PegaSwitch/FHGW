@@ -25,7 +25,7 @@ Multistrap:
     noauth: true
     explicitsuite: false
     unpack: true
-    debootstrap: Debian-Local Local-All Local-Arch ONL-Local
+    debootstrap: Debian-Local Local-All Local-Arch ONL-Local Local-Vendor-All Local-Vendor-Arch
     aptsources: Debian ONL
 
   Debian:
@@ -60,6 +60,14 @@ Multistrap:
 
   Local-Arch:
     source: ${ONLPM_OPTION_REPO}/${ONL_DEBIAN_SUITE}/packages/binary-${ARCH}
+    omitdebsrc: true
+
+  Local-Vendor-All:
+    source: ${ONLBASE}/REPO/${ONL_DEBIAN_SUITE}/packages/binary-all
+    omitdebsrc: true
+
+  Local-Vendor-Arch:
+    source: ${ONLBASE}/REPO/${ONL_DEBIAN_SUITE}/packages/binary-${ARCH}
     omitdebsrc: true
 
 Configure:
