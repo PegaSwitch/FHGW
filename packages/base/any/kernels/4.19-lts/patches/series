@@ -30,3 +30,4 @@ driver-hwmon-max6620.patch
 0027-platform-x86-mlx-platform-Remove-PSU-EEPROM-configur.patch
 0001-prepare-to-add-new-i2c-mux-driver-PCA9641.patch
 0002-add-new-i2c-mux-driver-PCA9641-support.patch
+0001-add-PTP-write-phase-mode.patch
