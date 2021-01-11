@@ -1,0 +1,25 @@
+From b049fa02b71aa316756e29fd28008f0a766414fb Mon Sep 17 00:00:00 2001
+From: JennyLien <jenny_lien@pegatroncorp.com>
+Date: Tue, 23 Feb 2021 14:39:41 +0800
+Subject: [PATCH 2/3] Correct SFP+ default speed setting
+
+---
+ .../mainSysConfig/src/appDemo/boardConfig/gtDbDxBobcat2Mappings.c       | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxBobcat2Mappings.c b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxBobcat2Mappings.c
+index 6437b68..9e4da41 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxBobcat2Mappings.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/boardConfig/gtDbDxBobcat2Mappings.c
+@@ -955,7 +955,7 @@ static PortInitList_STC portInitlist_bc3_default[] =
+    ,{ PORT_LIST_TYPE_INTERVAL,  {64,78,1,         APP_INV_PORT_CNS }, CPSS_PORT_SPEED_10000_E,  CPSS_PORT_INTERFACE_MODE_KR_E   }
+ #else
+     /*{ PORT_LIST_TYPE_INTERVAL,  {0,7,1,           APP_INV_PORT_CNS }, CPSS_PORT_SPEED_25000_E,  CPSS_PORT_INTERFACE_MODE_KR_E   }*/
+-    { PORT_LIST_TYPE_LIST,      {0,               APP_INV_PORT_CNS }, CPSS_PORT_SPEED_25000_E,  CPSS_PORT_INTERFACE_MODE_KR_E     }
++    { PORT_LIST_TYPE_LIST,      {0,               APP_INV_PORT_CNS }, CPSS_PORT_SPEED_10000_E,  CPSS_PORT_INTERFACE_MODE_KR_E     }
+    ,{ PORT_LIST_TYPE_LIST,      {1,               APP_INV_PORT_CNS }, CPSS_PORT_SPEED_1000_E ,  CPSS_PORT_INTERFACE_MODE_SGMII_E  }
+    ,{ PORT_LIST_TYPE_LIST,      {4,               APP_INV_PORT_CNS }, CPSS_PORT_SPEED_100G_E,   CPSS_PORT_INTERFACE_MODE_KR4_E    }
+    ,{ PORT_LIST_TYPE_INTERVAL,  {12,19,1,         APP_INV_PORT_CNS }, CPSS_PORT_SPEED_25000_E,  CPSS_PORT_INTERFACE_MODE_KR_E     }
+-- 
+2.7.4
+

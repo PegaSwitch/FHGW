@@ -1,0 +1,41 @@
+From 5e090eb304fd75250721038ebc90909bc7496bd1 Mon Sep 17 00:00:00 2001
+From: JennyLien <jenny_lien@pegatroncorp.com>
+Date: Wed, 17 Mar 2021 14:55:51 +0800
+Subject: [PATCH] Correct SFP+ port LED defaut setting
+
+---
+ .../src/appDemo/userExit/userEventHandler.c            | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c b/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c
+index a9ab815..e23b960 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c
+@@ -4260,10 +4260,20 @@ static GT_STATUS appDemoEnPpEvTreat
+                 /* Check current mode */
+                 rc = cpssDxChPortSpeedGet(devNum, portNum, &speed);
+                 /* osPrintf(" [userEventHandler.c] CPSS_PP_PORT_LINK_STATUS_CHANGED_E port %d speed %d\n", portNum, speed); */ /* PEGA log check link status change and speed */
+-                if (speed == CPSS_PORT_SPEED_10000_E || speed == CPSS_PORT_SPEED_1000_E || speed == CPSS_PORT_SPEED_40000_E)
+-                    pega_set_cpld_reg(portNum, 1);
+-                else
+-                    pega_set_cpld_reg(portNum, 0);
++                if ( portNum == 0 )    /* SFP+ :: 10G = green , 1G = amber */
++                {
++                    if (speed == CPSS_PORT_SPEED_1000_E)
++                        pega_set_cpld_reg(portNum, 1);
++                    else
++                        pega_set_cpld_reg(portNum, 0);
++                }
++                else                   /* QSFP28 :: 1G/10G/40G = amber , 25G/50G/100G = green  ;;  SFP28 :: 10G = amber , 25G = green */
++                {
++                    if (speed == CPSS_PORT_SPEED_10000_E || speed == CPSS_PORT_SPEED_1000_E || speed == CPSS_PORT_SPEED_40000_E)
++                        pega_set_cpld_reg(portNum, 1);
++                    else
++                        pega_set_cpld_reg(portNum, 0);
++                }
+ #endif
+ /* Add End */
+                 if(portMgr)
+-- 
+2.7.4
+

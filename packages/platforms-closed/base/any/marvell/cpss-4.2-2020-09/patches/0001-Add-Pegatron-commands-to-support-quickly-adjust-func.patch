@@ -1,0 +1,992 @@
+From 9f7de3e311dcedb2dc7c9e8788864d4e2d553b00 Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Mon, 4 Jan 2021 11:00:38 +0800
+Subject: [PATCH] Add Pegatron commands to support quickly adjust function
+ require
+
+---
+ .../src/appDemo/entryPoints/linux/_Makefile        |   2 +-
+ .../src/appDemo/entryPoints/linux/mfg_fhgw.c       | 941 +++++++++++++++++++++
+ mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c |   5 +
+ 3 files changed, 947 insertions(+), 1 deletion(-)
+ create mode 100644 cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile
+index b407e3f..37afc86 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/_Makefile
+@@ -10,7 +10,7 @@ MODULES :=
+ 
+ #List of files to include in list
+ FILES := \
+- main.c 
++ main.c mfg_fhgw.c
+ 
+ 
+ CWD := $(dir $(lastword $(MAKEFILE_LIST)))
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+new file mode 100644
+index 0000000..4204ea6
+--- /dev/null
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+@@ -0,0 +1,941 @@
++#define _BSD_SOURCE
++#include <gtOs/gtOsSharedMemory.h>
++#include <gtOs/gtOsInit.h>
++#define CMDOS_NO_CMDCOMMON
++#include <cmdShell/os/cmdOs.h>
++#ifdef CMD_LUA_CLI
++#include <termios.h>
++#include <unistd.h>
++#endif
++
++#include<sys/socket.h>
++#include<arpa/inet.h>
++#include <sys/ioctl.h>
++#include <linux/sockios.h>
++
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/ioctl.h>
++#include <fcntl.h>
++#include <linux/i2c.h>
++#include <linux/i2c-dev.h>
++#include <pthread.h>
++#include <math.h>
++#include <cpss/generic/cpssTypes.h>
++#include <cpss/generic/bridge/cpssGenBrgVlanTypes.h>
++#include <cpss/generic/bridge/private/prvCpssBrgVlanTypes.h>
++#include <cpss/generic/bridge/cpssGenBrgFdb.h>
++#include <cpss/generic/private/prvCpssCommonDefs.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortBufMg.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortTx.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortEee.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortCtrl.h>
++#include <cpss/dxCh/dxChxGen/port/cpssDxChPortBufMg.h>
++#include <cpss/dxCh/dxChxGen/port/private/prvCpssDxChPortCtrl.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgGen.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgVlan.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgSrcId.h>
++#include <cpss/dxCh/dxChxGen/bridge/cpssDxChBrgPrvEdgeVlan.h>
++#include <cpss/dxCh/dxChxGen/bridge/private/prvCpssDxChBrg.h>
++#include <cpss/dxCh/dxChxGen/config/private/prvCpssDxChInfo.h>
++#include <cpss/dxCh/dxChxGen/ip/cpssDxChIpCtrl.h>
++#include <cpss/dxCh/dxChxGen/cos/private/prvCpssDxChCoS.h>
++#include <cpss/dxCh/dxChxGen/diag/cpssDxChDiag.h>
++#include <cpss/dxCh/dxChxGen/diag/cpssDxChDiagDataIntegrity.h>
++#include <cpss/dxCh/dxChxGen/diag/cpssDxChDiagPacketGenerator.h>
++#include <cpss/dxCh/dxChxGen/trunk/cpssDxChTrunk.h>
++#include <cpss/dxCh/dxChxGen/cscd/cpssDxChCscd.h>
++#include <cpss/dxCh/dxChxGen/cutThrough/cpssDxChCutThrough.h>
++#include <cpss/dxCh/dxChxGen/phy/cpssDxChPhySmi.h>
++#include <appDemo/boardConfig/gtBoardsConfigFuncs.h>
++#include <appDemo/boardConfig/appDemoBoardConfig.h>
++#include <appDemo/boardConfig/appDemoCfgMisc.h>
++#include <appDemo/boardConfig/appDemoLion2TrunkWa.h>
++#include <appDemo/sysHwConfig/appDemoDb.h>
++#include <appDemo/sysHwConfig/gtAppDemoSysConfig.h>
++#include <appDemo/sysHwConfig/gtAppDemoSysConfigDefaults.h>
++#include <extUtils/osNetworkStack/osNetworkStack.h>
++
++#define DEVNUM 0
++#define SFP_AMOUNT        9
++#define PORT_ACTION_DELAY 30000      /* ms */
++#define ACTION_DELAY      150000     /* ms */
++
++struct default_vlan_info {
++    CPSS_PORTS_BMP_STC portMem;
++    CPSS_PORTS_BMP_STC portsTag;
++    CPSS_DXCH_BRG_VLAN_INFO_STC vlanInfo;
++    GT_BOOL isValid;
++    CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC portsTaggingCmd;
++};
++static struct default_vlan_info def_vlan_bak;
++static int isDefVlanBak = 0;
++
++CPSS_PORT_MANAGER_STATUS_STC portMgrData, portMgrData_ref;
++CPSS_PORT_MANAGER_STC        portEventStc;
++int SFP_MAC_PORTS[SFP_AMOUNT] = {0, 12, 13, 14, 15, 16, 17, 18, 19};
++int QSFP_PORTS_FANOUT[4] = {4, 5, 6, 7};
++int flag_qsfp_fan_out, flag_qsfp_fan_out_50g = 0;
++
++/** MFG defined ::
++    speed >>
++    0 = shutdown
++    1 =   1G
++   10 =  10G
++   25 =  25G
++   40 =  40G
++   50 =  50G
++  100 = 100G
++
++    FEC >>
++    0 = disable
++    1 = FC-FEC   * for 25G
++    2 = RS-FEC   * for 50,100G
++
++    Flow Control >>
++    0 = disable
++    1 = RX_TX both enable
++
++    BackPressure >>
++    0 = disable
++    1 = enable
++
++    VLAN >>
++    0 = clear ( = default )
++    1 = 2-ports per vlan
++    2 = 1 port per vlan
++
++ * actual SDK defined in common/h/cpss/common/port/cpssPortCtrl.h
++                         common/h/cpss/common/port/cpssPortManager.h
++**/
++
++int Get_MAC_Temperature (void)
++{
++    GT_32     temperature = 0;
++
++    cpssDxChDiagDeviceTemperatureGet(DEVNUM, &temperature);
++    printf(" # Current MAC temperature is %d degree\n\n", temperature);
++
++    return temperature;
++}
++
++void Check_QSFP_Origin_Serdes_Setting()
++{
++    cpssDxChPortManagerStatusGet(DEVNUM, QSFP_PORTS_FANOUT[2], &portMgrData_ref);             /* if fan-out, port#6 must exist, so use it to check fan-out or not. */
++
++    if ( portMgrData_ref.portState == CPSS_PORT_MANAGER_STATE_RESET_E )                       /* not exist means port#4 is 100G */
++    {
++        flag_qsfp_fan_out = 0;
++    }
++    else                                                                                      /* 100G has fan-out */
++    {
++        flag_qsfp_fan_out = 1;
++
++        cpssDxChPortManagerStatusGet(DEVNUM, QSFP_PORTS_FANOUT[1], &portMgrData_ref);
++        if ( portMgrData_ref.portState == CPSS_PORT_MANAGER_STATE_RESET_E )                   /* port#5 not exist means just fan-to-2 */
++        {
++            flag_qsfp_fan_out_50g = 1;
++        }
++        else
++        {
++            flag_qsfp_fan_out_50g = 0;
++        }
++    }
++}
++
++GT_STATUS Get_Port_Status(int portNum)
++{
++    int rv;
++
++    rv = cpssDxChPortManagerStatusGet(DEVNUM, portNum, &portMgrData);
++    /* printf(" # debug # port %d :: interface = %d , speed = %d , FEC = %d , status = %d\n", portNum, portMgrData.ifMode, portMgrData.speed, portMgrData.fecType, portMgrData.portState); */
++
++    return rv;
++}
++
++GT_STATUS PortMgr_State_Set(int portNum, CPSS_PORT_MANAGER_STATE_ENT state)
++{
++    GT_STATUS                    result;
++
++    /* Get current port's status first */
++    Get_Port_Status(portNum);
++
++    if ( state == CPSS_PORT_MANAGER_STATE_RESET_E && portMgrData.portState == CPSS_PORT_MANAGER_STATE_RESET_E )
++        printf("Skip set state to RESET\n");
++    else
++    {
++        portEventStc.portEvent = state;
++        result = cpssDxChPortManagerEventSet(DEVNUM, portNum, &portEventStc );
++        if(result != GT_OK)
++        {
++            cpssOsPrintf("cpssDxChPortManagerEventSet(portNum = %d): rc=%d\n", portNum, result);
++        }
++    }
++
++    return result;
++}
++
++GT_STATUS Port_Attr_Set_Then_Enable (int portNum, CPSS_PORT_INTERFACE_MODE_ENT port_if, CPSS_PORT_SPEED_ENT port_speed, CPSS_PORT_FEC_MODE_ENT fecType)
++{
++    GT_STATUS                    result;
++
++    result = cpssDxChSamplePortManagerMandatoryParamsSet(DEVNUM, portNum, port_if, port_speed, fecType);
++    if(result != GT_OK)
++    {
++        cpssOsPrintf("cpssDxChSamplePortManagerMandatoryParamsSet (portNum = %d): rc=%d\n", portNum, result);
++    }
++
++    /* Set portMgr state to 'CREATE' */
++    portEventStc.portEvent = CPSS_PORT_MANAGER_EVENT_CREATE_E;
++    result = cpssDxChPortManagerEventSet(DEVNUM, portNum, &portEventStc );
++    if(result != GT_OK)
++    {
++        cpssOsPrintf("cpssDxChPortManagerEventSet(portNum = %d): rc=%d\n", portNum, result);
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Set_Port_FEC(int portNum, int fec_type)    /* once set one port */
++{
++    CPSS_PORT_SPEED_ENT          port_speed;
++    CPSS_PORT_INTERFACE_MODE_ENT port_if;
++    CPSS_PORT_FEC_MODE_ENT       fecType;
++
++    /* Check target port exist or not */
++    cpssDxChPortManagerStatusGet(DEVNUM, portNum, &portMgrData_ref);
++    if ( portMgrData_ref.portState == CPSS_PORT_MANAGER_STATE_RESET_E )
++    {
++        printf(" # Invalid setting on port %d\n", portNum);
++        return GT_OK;
++    }
++
++    /* Prevent invalid request */
++    if ( portNum == QSFP_PORTS_FANOUT[0] || portNum == QSFP_PORTS_FANOUT[1] || portNum == QSFP_PORTS_FANOUT[2] || portNum == QSFP_PORTS_FANOUT[3] )
++    {
++        Check_QSFP_Origin_Serdes_Setting();
++        if ( flag_qsfp_fan_out == 0 && fec_type == 1 )
++        {
++            printf(" # FC-FEC mode not supported on 100G\n");    /* ! BUT 40G will also be blocked ... ! */
++            return GT_OK;
++        }
++        else if ( flag_qsfp_fan_out_50g == 1 && fec_type == 1 )
++        {
++            printf(" # FC-FEC mode not supported on 50G, by Marvell defined.\n");
++            return GT_OK;
++        }
++    }
++
++    /* Set portMgr state to 'RESET' first */
++    PortMgr_State_Set(portNum, CPSS_PORT_MANAGER_EVENT_DELETE_E);
++
++    /* Set FEC require */
++    if ( fec_type == 1 )
++    {
++        fecType = CPSS_PORT_FEC_MODE_ENABLED_E;
++    }
++    else if ( fec_type == 2 )
++    {
++        fecType = CPSS_PORT_RS_FEC_MODE_ENABLED_E;
++    }
++    else if ( fec_type == 3 )
++    {
++        fecType = CPSS_PORT_BOTH_FEC_MODE_ENABLED_E;
++    }
++    else /* fec_type = 0 */
++    {
++        fecType = CPSS_PORT_FEC_MODE_DISABLED_E;
++    }
++
++    /* Remain original speed & interface setting. If no value, use default setting */
++    port_speed = portMgrData.speed;
++    port_if = portMgrData.ifMode;
++
++    if ( port_speed == CPSS_PORT_SPEED_NA_E )
++    {
++       if ( portNum == QSFP_PORTS_FANOUT[0] || portNum == QSFP_PORTS_FANOUT[1] || portNum == QSFP_PORTS_FANOUT[2] || portNum == QSFP_PORTS_FANOUT[3] )
++       {
++            if ( flag_qsfp_fan_out == 0 )
++                port_speed = CPSS_PORT_SPEED_100G_E;          /* !!!! or 40G !!!!! */
++            else
++            {
++                if (flag_qsfp_fan_out_50g == 1)
++                    port_speed = CPSS_PORT_SPEED_50000_E;
++                else
++                    port_speed = CPSS_PORT_SPEED_25000_E;     /* !!!! or 10G !!!!! */
++            }
++       }
++       else
++           port_speed = CPSS_PORT_SPEED_25000_E;              /* !!!! or 10G !!!!! */
++    }
++
++    if ( port_if == CPSS_PORT_INTERFACE_MODE_NA_E )
++    {
++       if ( portNum == QSFP_PORTS_FANOUT[0] || portNum == QSFP_PORTS_FANOUT[1] || portNum == QSFP_PORTS_FANOUT[2] || portNum == QSFP_PORTS_FANOUT[3] )
++       {
++            if ( flag_qsfp_fan_out == 0 )
++                port_if = CPSS_PORT_INTERFACE_MODE_KR4_E;
++            else
++            {
++                if (flag_qsfp_fan_out_50g == 1)
++                    port_if = CPSS_PORT_INTERFACE_MODE_KR2_E;
++                else
++                    port_if = CPSS_PORT_INTERFACE_MODE_KR_E;
++            }
++       }
++       else
++           port_if = CPSS_PORT_INTERFACE_MODE_KR_E;
++    }
++
++    /* Set new setting */
++    Port_Attr_Set_Then_Enable(portNum, port_if, port_speed, fecType);
++
++    return GT_OK;
++}
++
++GT_STATUS Set_Port_Speed(int portNum, int speed)
++{
++    CPSS_PORT_SPEED_ENT          port_speed;
++    CPSS_PORT_INTERFACE_MODE_ENT port_if;
++    int p = 0;
++
++    /* Check target port exist or not */
++    cpssDxChPortManagerStatusGet(DEVNUM, portNum, &portMgrData_ref);
++    if ( portMgrData_ref.portState == CPSS_PORT_MANAGER_STATE_RESET_E )
++    {
++        printf(" # Invalid setting on port %d\n", portNum);
++        return GT_OK;
++    }
++
++    if ( portNum != QSFP_PORTS_FANOUT[0] )    /* Prevent invalid request : 40/50/100G only for QSFP port */
++    {
++        if ( speed == 40 || speed == 50 || speed == 100 )
++        {
++            printf(" # Invalid speed setting on port %d\n", portNum);
++            return GT_OK;
++        }
++    }
++    else     /* check QSFP status to decide QSFP's next action */
++    {
++        Check_QSFP_Origin_Serdes_Setting();
++    }
++
++    /* Special case : disable the port for user request */
++    if (speed == 0)
++    {
++        if(portNum == QSFP_PORTS_FANOUT[0] && flag_qsfp_fan_out == 1)
++        {
++            if (flag_qsfp_fan_out_50g == 1)
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
++                {
++                    PortMgr_State_Set(p, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
++                }
++            }
++            else
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 1)
++                {
++                    PortMgr_State_Set(p, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
++                }
++            }
++        }
++        else
++            PortMgr_State_Set(portNum, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
++
++        return GT_OK;
++    }
++
++    /* Set portMgr state to 'RESET' first */
++    if ( portNum == QSFP_PORTS_FANOUT[0] )
++    {
++        if (flag_qsfp_fan_out_50g == 1 && ( speed != 50 )) /* 50G want to set to 10/25/40/100G */
++        {
++            PortMgr_State_Set(QSFP_PORTS_FANOUT[0], CPSS_PORT_MANAGER_EVENT_DELETE_E);
++            PortMgr_State_Set(QSFP_PORTS_FANOUT[2], CPSS_PORT_MANAGER_EVENT_DELETE_E);
++        }
++        else if ( (flag_qsfp_fan_out == 1 && ( speed != 10 && speed != 25 )) )      /* or already fan-out (10/25G) but want to set to 40/50/100G, so need to reset all ports */
++        {
++            PortMgr_State_Set(QSFP_PORTS_FANOUT[0], CPSS_PORT_MANAGER_EVENT_DELETE_E);
++            PortMgr_State_Set(QSFP_PORTS_FANOUT[1], CPSS_PORT_MANAGER_EVENT_DELETE_E);
++            PortMgr_State_Set(QSFP_PORTS_FANOUT[2], CPSS_PORT_MANAGER_EVENT_DELETE_E);
++            PortMgr_State_Set(QSFP_PORTS_FANOUT[3], CPSS_PORT_MANAGER_EVENT_DELETE_E);
++        }
++        else                                                                   /* no fan-out or fan-out but set to 10/25G, so just reset main port#4 */
++            PortMgr_State_Set(portNum, CPSS_PORT_MANAGER_EVENT_DELETE_E);
++    }
++    else
++        PortMgr_State_Set(portNum, CPSS_PORT_MANAGER_EVENT_DELETE_E);
++
++    /* If the port was link-down */
++    if ( portMgrData.fecType == CPSS_PORT_FEC_MODE_LAST_E )
++    {
++        portMgrData.fecType = CPSS_PORT_FEC_MODE_DISABLED_E;
++    }
++
++    /* Set speed and interface */
++    switch (speed)
++    {
++        case 1:
++            port_speed = CPSS_PORT_SPEED_1000_E;
++            port_if = CPSS_PORT_INTERFACE_MODE_1000BASE_X_E;
++            break;
++        case 10:
++            port_speed = CPSS_PORT_SPEED_10000_E;
++            port_if = CPSS_PORT_INTERFACE_MODE_KR_E;
++            break;
++        case 25:
++            port_speed = CPSS_PORT_SPEED_25000_E;
++            port_if = CPSS_PORT_INTERFACE_MODE_KR_E;
++            break;
++        case 40:
++            port_speed = CPSS_PORT_SPEED_40000_E;
++            port_if = CPSS_PORT_INTERFACE_MODE_KR4_E;
++            break;
++        case 50:
++            port_speed = CPSS_PORT_SPEED_50000_E;
++            port_if = CPSS_PORT_INTERFACE_MODE_KR2_E;
++            break;
++        case 100:
++            port_speed = CPSS_PORT_SPEED_100G_E;
++            port_if = CPSS_PORT_INTERFACE_MODE_KR4_E;
++            break;
++        default:
++            port_speed = portMgrData.speed;
++            port_if = portMgrData.ifMode;
++    };
++
++    /* Set new setting */
++    if (portNum == QSFP_PORTS_FANOUT[0])
++    {
++        if (flag_qsfp_fan_out == 0)
++        {
++            if (speed == 10 || speed == 25)
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p++)
++                {
++                    Port_Attr_Set_Then_Enable(p, port_if, port_speed, portMgrData.fecType);
++                }
++            }
++            else if (speed == 50)
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
++                {
++                    Port_Attr_Set_Then_Enable(p, port_if, port_speed, portMgrData.fecType);
++                }
++            }
++            else    /* 40,100G */
++            {
++                Port_Attr_Set_Then_Enable(portNum, port_if, port_speed, portMgrData.fecType);
++            }
++        }
++        else if (flag_qsfp_fan_out == 1 && speed == 50)
++        {
++            for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
++            {
++                Port_Attr_Set_Then_Enable(p, port_if, port_speed, portMgrData.fecType);
++            }
++        }
++        else if (flag_qsfp_fan_out_50g == 1 && (speed == 10 || speed == 25))
++        {
++            for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p++)
++            {
++                Port_Attr_Set_Then_Enable(p, port_if, port_speed, portMgrData.fecType);
++            }
++        }
++        else
++        {
++            Port_Attr_Set_Then_Enable(portNum, port_if, port_speed, portMgrData.fecType);
++        }
++    }
++    else
++    {
++        Port_Attr_Set_Then_Enable(portNum, port_if, port_speed, portMgrData.fecType);
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Set_BackPressure(int portNum, int mode)
++{
++    GT_STATUS rc;
++
++    if(mode == 1)
++        rc = cpssDxChPortBackPressureEnableSet(DEVNUM, portNum, GT_TRUE);
++    else
++        rc = cpssDxChPortBackPressureEnableSet(DEVNUM, portNum, GT_FALSE);
++    usleep(10000);
++    if ( rc != GT_OK )
++    {
++        printf(" # Port %d BackPressureEnableSet fail\n", portNum);
++        return rc;
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Ports_BackPressure_Mode(int mode)
++{
++    GT_STATUS rc;
++    int index;
++
++    /* SFP */
++    for (index = 0 ; index < SFP_AMOUNT ; index++)
++    {
++        rc = Set_BackPressure(SFP_MAC_PORTS[index], mode);
++        if (rc != GT_OK)
++            return rc;
++    }
++
++    /* QSFP ports */
++    Check_QSFP_Origin_Serdes_Setting();
++    if ( flag_qsfp_fan_out == 0 )
++    {
++        rc = Set_BackPressure(QSFP_PORTS_FANOUT[0], mode);
++        if (rc != GT_OK)
++            return rc;
++    }
++    else
++    {
++        if (flag_qsfp_fan_out_50g == 1)
++        {
++            for (index = QSFP_PORTS_FANOUT[0] ; index <= QSFP_PORTS_FANOUT[3] ; index += 2)
++            {
++                rc = Set_BackPressure(index, mode);
++                if (rc != GT_OK)
++                    return rc;
++            }
++        }
++        else
++        {
++            for (index = QSFP_PORTS_FANOUT[0] ; index <= QSFP_PORTS_FANOUT[3] ; index += 1)
++            {
++                rc = Set_BackPressure(index, mode);
++                if (rc != GT_OK)
++                    return rc;
++            }
++        }
++    }
++
++    if(mode == 1)
++        printf(" # Back Pressure set ON : Done\n");
++    else
++        printf(" # Back Pressure set OFF : Done\n");
++
++    return GT_OK;
++}
++
++GT_STATUS Set_FlowControl(int portNum, int mode)
++{
++    GT_STATUS rc;
++
++    if(mode == 1)
++        rc = cpssDxChPortFlowControlEnableSet(DEVNUM, portNum, CPSS_PORT_FLOW_CONTROL_RX_TX_E);
++    else
++        rc = cpssDxChPortFlowControlEnableSet(DEVNUM, portNum, CPSS_PORT_FLOW_CONTROL_DISABLE_E);
++    usleep(10000);
++    if ( rc != GT_OK )
++    {
++        printf(" # Port %d FlowControlEnableSet fail\n", portNum);
++        return rc;
++    }
++
++    if(mode == 1)
++        rc = cpssDxChPortFlowCntrlAutoNegEnableSet(DEVNUM, portNum, GT_FALSE, GT_FALSE);
++    else
++        rc = cpssDxChPortFlowCntrlAutoNegEnableSet(DEVNUM, portNum, GT_FALSE, GT_FALSE);
++    usleep(10000);
++    if ( rc != GT_OK )
++    {
++        printf(" # Port %d FlowCntrlAutoNegEnableSet fail\n", portNum);
++        return rc;
++    }
++
++    return GT_OK;
++}
++
++GT_STATUS Ports_FlowControl_Mode(int mode)
++{
++    GT_STATUS rc;
++    int index;
++
++    /* SFP */
++    for (index = 0 ; index < SFP_AMOUNT ; index++)
++    {
++        rc = Set_FlowControl(SFP_MAC_PORTS[index], mode);
++        if (rc != GT_OK)
++            return rc;
++    }
++
++    /* QSFP ports */
++    Check_QSFP_Origin_Serdes_Setting();
++    if ( flag_qsfp_fan_out == 0 )
++    {
++        rc = Set_FlowControl(QSFP_PORTS_FANOUT[0], mode);
++        if (rc != GT_OK)
++            return rc;
++    }
++    else
++    {
++        if (flag_qsfp_fan_out_50g == 1)
++        {
++            for (index = QSFP_PORTS_FANOUT[0] ; index <= QSFP_PORTS_FANOUT[3] ; index += 2)
++            {
++                rc = Set_FlowControl(index, mode);
++                if (rc != GT_OK)
++                    return rc;
++            }
++        }
++        else
++        {
++            for (index = QSFP_PORTS_FANOUT[0] ; index <= QSFP_PORTS_FANOUT[3] ; index += 1)
++            {
++                rc = Set_FlowControl(index, mode);
++                if (rc != GT_OK)
++                    return rc;
++            }
++        }
++    }
++
++    if(mode == 1)
++        printf(" # Flow control set ON : Done\n");
++    else
++        printf(" # Flow control set OFF : Done\n");
++
++    return GT_OK;
++}
++
++GT_STATUS Set_JumboFrame_Size(int portNum, GT_U16 mruSize)
++{
++    GT_STATUS ret = GT_OK;
++    int vlan_id = 1, mruIndex = 0, mruValue = mruSize;    /* size max = 10240 */
++
++    /* Set max receive packet size for the port */
++    ret = cpssDxChPortMruSet(DEVNUM, portNum, mruSize);
++    if (ret)
++        printf(" # Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChPortMruSet with size %d , on Port %d\n", mruSize, portNum);
++    usleep(PORT_ACTION_DELAY);
++
++    /* Set max receive MRU profile index for a vlan. */
++    ret = cpssDxChBrgVlanMruProfileIdxSet(DEVNUM, vlan_id, mruIndex);
++    if (ret)
++        printf(" # Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChBrgVlanMruProfileIdxSet , on Port %d\n", portNum);
++    usleep(PORT_ACTION_DELAY);
++
++    /* Set value to the MRU profile */
++    ret = cpssDxChBrgVlanMruProfileValueSet(DEVNUM, mruIndex, mruValue);
++    if (ret)
++        printf(" # Ports_JumboFrame_Size_Set Error occure during calling api - cpssDxChBrgVlanMruProfileValueSet , on Port %d\n", portNum);
++    usleep(PORT_ACTION_DELAY);
++
++    return ret;
++}
++
++GT_STATUS Ports_JumboFrame_Size_Set(IN GT_U16 mruSize)
++{
++    int index;
++    GT_STATUS result;
++
++    if ( mruSize > 10240 )
++    {
++        printf(" # Illegal frame size ! Maximum is 10240\n");
++        return GT_OK;
++    }
++
++    /* SFP ports */
++    for (index = 0 ; index < SFP_AMOUNT ; index++)
++    {
++        result = Set_JumboFrame_Size(SFP_MAC_PORTS[index], mruSize);
++        if (result != GT_OK)
++            return result;
++    }
++
++    /* QSFP ports */
++    Check_QSFP_Origin_Serdes_Setting();
++    if ( flag_qsfp_fan_out == 0 )
++    {
++        result = Set_JumboFrame_Size(QSFP_PORTS_FANOUT[0], mruSize);
++        if (result != GT_OK)
++            return result;
++    }
++    else
++    {
++        if (flag_qsfp_fan_out_50g == 1)
++        {
++            for (index = QSFP_PORTS_FANOUT[0] ; index <= QSFP_PORTS_FANOUT[3] ; index += 2)
++            {
++                result = Set_JumboFrame_Size(index, mruSize);
++                if (result != GT_OK)
++                    return result;
++            }
++        }
++        else
++        {
++            for (index = QSFP_PORTS_FANOUT[0] ; index <= QSFP_PORTS_FANOUT[3] ; index += 1)
++            {
++                result = Set_JumboFrame_Size(index, mruSize);
++                if (result != GT_OK)
++                    return result;
++            }
++        }
++    }
++
++    printf(" # JumboFrame Set size %d : Done.\n", mruSize);
++
++    return GT_OK;
++}
++
++int Backup_Default_Vlan(void)
++{
++    GT_U16 vlanId = 1;
++    CPSS_PORTS_BMP_STC portsMem;
++    CPSS_PORTS_BMP_STC portsTag;
++    CPSS_DXCH_BRG_VLAN_INFO_STC vlanInfo;
++    CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC portsTaggingCmd;
++    GT_BOOL isValid;
++    int ret;
++
++    if (isDefVlanBak == 0)
++    {
++        ret = cpssDxChBrgVlanEntryRead(DEVNUM, vlanId, &portsMem, &portsTag, &vlanInfo, &isValid, &portsTaggingCmd);
++
++        if (ret == GT_OK) {
++            cpssOsMemCpy(&def_vlan_bak.portMem, &portsMem, sizeof(CPSS_PORTS_BMP_STC));
++            cpssOsMemCpy(&def_vlan_bak.portsTag, &portsTag, sizeof(CPSS_PORTS_BMP_STC));
++            cpssOsMemCpy(&def_vlan_bak.vlanInfo, &vlanInfo, sizeof(CPSS_DXCH_BRG_VLAN_INFO_STC));
++            cpssOsMemCpy(&def_vlan_bak.isValid, &isValid, sizeof(GT_BOOL));
++            cpssOsMemCpy(&def_vlan_bak.portsTaggingCmd, &portsTaggingCmd, sizeof(CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC));
++
++            isDefVlanBak = 1;
++        }
++        else
++            return GT_FAIL;
++    }
++
++    return GT_OK;
++}
++
++void Clear_VlanPort_Memory(int vlan_id)
++{
++    CPSS_PORTS_BMP_STC portsMem;
++    CPSS_PORTS_BMP_STC portsTag;
++
++    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsMem);
++    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsTag);
++
++    cpssDxChBrgVlanEntryWrite(DEVNUM, vlan_id, &portsMem, &portsTag, &def_vlan_bak.vlanInfo, &def_vlan_bak.portsTaggingCmd);
++}
++
++void Restore_Default_Vlan(void)
++{
++     cpssDxChBrgVlanEntryWrite(DEVNUM, 1, &def_vlan_bak.portMem, &def_vlan_bak.portsTag, &def_vlan_bak.vlanInfo, &def_vlan_bak.portsTaggingCmd);
++}
++
++GT_STATUS Vlan_Mode_Set (IN GT_U8 mode)
++{
++    GT_U16 p, vid, vlan_count, vlan_first_diagnal;
++    GT_PORT_NUM port;
++    CPSS_PORTS_BMP_STC port_bmp, port_tag;
++    CPSS_DXCH_BRG_VLAN_INFO_STC vlan_info;
++    CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC port_tag_cmd;
++    int SFP_VLAN_PAIR = 4;   /* ! tmp value ! */ /* 4 = (12,13),(14,15),(16,17),(18,19) */
++
++    cpssOsMemSet(&vlan_info, 0, sizeof(CPSS_DXCH_BRG_VLAN_INFO_STC));
++    cpssOsMemSet(&port_tag_cmd, 0, sizeof(CPSS_DXCH_BRG_VLAN_PORTS_TAG_CMD_STC));
++    vlan_info.floodVidx = 0xFFF;
++    vlan_info.naMsgToCpuEn = 1;
++
++    /* Get QSFP setting status first. */
++    Check_QSFP_Origin_Serdes_Setting();
++
++    /* Start setting VLAN by request mode */
++    if (mode == 0)
++    {
++        printf(" [MFG] Set Vlan to Normal Stage\n");
++
++        vid = 1;
++        for (vlan_count = 2; vlan_count < 4095; vlan_count++)
++        {
++            cpssDxChBrgVlanEntryInvalidate(DEVNUM, vlan_count);
++        }
++
++        Restore_Default_Vlan();
++
++        /* SFP ports */
++        for (p = 0 ; p < SFP_AMOUNT ; p++)
++        {
++            cpssDxChBrgVlanPortVidSet(DEVNUM, SFP_MAC_PORTS[p], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports */
++        Check_QSFP_Origin_Serdes_Setting();
++        if ( flag_qsfp_fan_out == 0 )
++        {
++            cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[0], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++        else
++        {
++            if (flag_qsfp_fan_out_50g == 1)
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
++                {
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, p, CPSS_DIRECTION_INGRESS_E, vid);
++                }
++            }
++            else
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 1)
++                {
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, p, CPSS_DIRECTION_INGRESS_E, vid);
++                }
++            }
++        }
++    }
++    else if (mode == 1)    /* !!! not sure , wait EDVT require !!! */
++    {
++        printf(" [MFG] Set Vlan to 2-port per vlan.\n");
++
++        Clear_VlanPort_Memory(1);
++
++        /* SFP ports */
++        vid = 1;
++        vlan_info.fidValue = vid;
++        CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++        CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, SFP_MAC_PORTS[0]);
++        cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++        cpssDxChBrgVlanPortVidSet(DEVNUM, SFP_MAC_PORTS[0], CPSS_DIRECTION_INGRESS_E, vid);
++
++        for (vid = 2, port = SFP_MAC_PORTS[1] ; vid <= ( 1 + SFP_VLAN_PAIR ) ; vid++, port += 2)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, port+1);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, port, CPSS_DIRECTION_INGRESS_E, vid);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, port+1, CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports */
++        if ( flag_qsfp_fan_out == 0 )
++        {
++            vid = ( 1 + ( SFP_VLAN_PAIR + 1 ));
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[0]);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[0], CPSS_DIRECTION_INGRESS_E, vid);;
++        }
++        else
++        {
++            if (flag_qsfp_fan_out_50g == 1)
++            {
++                for (p = 0, vid = ( 1 + ( SFP_VLAN_PAIR + 1 )) ; p < 2 ; p += 2, vid++)
++                {
++                    vlan_info.fidValue = vid;
++                    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[p]);
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[p+2]);
++                    cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[p], CPSS_DIRECTION_INGRESS_E, vid);
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[p+2], CPSS_DIRECTION_INGRESS_E, vid);
++                }
++            }
++            else
++            {
++                for (p = 0, vid = ( 1 + ( SFP_VLAN_PAIR + 1 )) ; p < 4 ; p += 2, vid++)
++                {
++                    vlan_info.fidValue = vid;
++                    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[p]);
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[p+1]);
++                    cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[p], CPSS_DIRECTION_INGRESS_E, vid);
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[p+1], CPSS_DIRECTION_INGRESS_E, vid);
++                }
++            }
++        }
++    }
++    else if (mode == 2)
++    {
++        printf(" [MFG] Set Vlan to 1-port per vlan.\n\n");
++
++        Clear_VlanPort_Memory(1);
++
++        /* SFP ports */
++        for (vid = 2, p = 0 ; p <= SFP_AMOUNT ; vid++, p ++)
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, SFP_MAC_PORTS[p]);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, SFP_MAC_PORTS[p], CPSS_DIRECTION_INGRESS_E, vid);
++        }
++
++        /* QSFP ports */
++        if ( flag_qsfp_fan_out == 0 )
++        {
++            vlan_info.fidValue = vid;
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++            CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[0]);
++            cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++            cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[0], CPSS_DIRECTION_INGRESS_E, vid);;
++        }
++        else
++        {
++            if (flag_qsfp_fan_out_50g == 1)
++            {
++                for (p = 0, vid = ( 1 + SFP_AMOUNT + 1 ) ; p < 4 ; p+=2, vid++)
++                {
++                    vlan_info.fidValue = vid;
++                    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[p]);
++                    cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[p], CPSS_DIRECTION_INGRESS_E, vid);
++                }
++            }
++            else
++            {
++                for (p = 0, vid = ( 1 + SFP_AMOUNT + 1 ) ; p < 4 ; p++, vid++)
++                {
++                    vlan_info.fidValue = vid;
++                    CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&port_bmp);
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&port_bmp, QSFP_PORTS_FANOUT[p]);
++                    cpssDxChBrgVlanEntryWrite(DEVNUM, vid, &port_bmp, &port_tag, &vlan_info, &port_tag_cmd);
++                    cpssDxChBrgVlanPortVidSet(DEVNUM, QSFP_PORTS_FANOUT[p], CPSS_DIRECTION_INGRESS_E, vid);
++                }
++            }
++        }
++    }
++
++    return GT_OK;
++}
++
++void Pre_Config_Check_And_Set(void)
++{
++    cpssOsMemSet(&def_vlan_bak, 0, sizeof(struct default_vlan_info));
++    Backup_Default_Vlan();
++}
++
++GT_STATUS MFG_Init(void)
++{
++    int rv;
++
++    rv = appDemoDbEntryAdd("portMgr", 1);
++    printf("  Entry Add 'portMgr mode' Done(%d)\n\n", rv);
++
++    rv = cpssInitSystem(29, 1, 0);    /* Aldrin2S */
++    usleep(ACTION_DELAY);
++    if (rv)
++        return rv;
++    else
++        printf("\n  System Inititailize Done(%d)\n", rv);
++
++    Pre_Config_Check_And_Set();
++
++    return GT_OK;
++
++}
+diff --git a/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c b/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c
+index 5d92915..20c8ad1 100644
+--- a/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c
++++ b/mainExtUtils/src/extUtils/luaCLI/luaCLIEngineCLI.c
+@@ -1180,6 +1180,11 @@ GT_STATUS luaCLIEngineEventInit
+ #endif
+     }
+ 
++    #if 1     /* PEGA add */
++        int rc = 0;
++        rc = MFG_Init();
++    #endif
++
+     *linePtr = (char*)memMgr->malloc(CLI_MAX_LINE_LEN);
+ 
+     return GT_OK;
+-- 
+2.7.4
+

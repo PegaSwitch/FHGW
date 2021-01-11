@@ -3,9 +3,9 @@
 # PKG template for all platform-closed module packages
 #
 ############################################################
-prerequisites:
-  packages:
-    - onl-platform-sdk-$BASENAME:$ARCH
+#prerequisites:
+#  packages:
+#    - onl-platform-sdk-$BASENAME:$ARCH
 
 packages:
   - name: onl-platform-mfg-${BASENAME}

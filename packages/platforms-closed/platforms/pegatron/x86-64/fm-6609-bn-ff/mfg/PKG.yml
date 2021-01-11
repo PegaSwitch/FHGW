@@ -1,1 +1,36 @@
-!include $ONLBASE/packages/platforms-closed/base/any/mfg/APKG.yml ARCH=amd64 VENDOR=pegatron BASENAME=x86-64-pegatron-fm-6609-bn-ff
+variables:
+  arch: amd64
+  basename: x86-64-pegatron-fm-6609-bn-ff
+  model: x86-64-pegatron-fhgw
+
+prerequisites:
+  packages:
+    - onl-platform-sdk-$model:$arch
+
+packages:
+  - name: onl-platform-mfg-$basename
+    version: 0.1.6
+    arch: $arch
+    copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+    maintainer: support@bigswitch.com
+    support: opennetworklinux@googlegroups.com
+    summary: ONL Platform Manufacture Package for the $basename
+
+    files:
+      - src/platform_initialization/: /root/mfg/platform_initialization/
+      - src/platform_traffic_test_entry/: /root/mfg/platform_traffic_test_entry/
+      - src/tools/detect_mb.sh: /root/mfg/tools/
+      - src/setup.sh: /root/
+
+  - name: onl-platform-sdk-$basename
+    version: 1.0.0
+    arch: $arch
+    copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+    maintainer: support@bigswitch.com
+    support: opennetworklinux@googlegroups.com
+    summary: ONL Platform Manufacture Package for the $basename
+
+    files:
+      - builds/jessie/cpss/compilation_root/appDemo: /root/mfg/appDemo-fhgw
+
+    changelog: Changes

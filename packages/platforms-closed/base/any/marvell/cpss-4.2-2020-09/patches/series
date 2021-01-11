@@ -1,2 +1,8 @@
 0001-modify-Makefile-to-build-CPSS-under-ONL.patch
 0002-Pegatron-customized-for-FHGW-layout.patch
+0001-Make-LED-light-in-different-color-in-different-speed.patch
+0001-Add-Pegatron-commands-to-support-quickly-adjust-func.patch
+0001-Add-MFG-PCIe-test-function.patch
+0002-Correct-SFP-default-speed-setting.patch
+0003-Support-Legacy-mode-control-scrips.patch
+0001-Correct-SFP-port-LED-defaut-setting.patch

@@ -1,0 +1,1 @@
+!include $ONLBASE/packages/platforms-closed/base/any/marvell/cpss/APKG.yml DEBIAN=jessie ARCH=amd64 VENDOR=pegatron BASENAME=x86-64-pegatron-fhgw KERNELS="onl-kernel-4.19-lts-x86-64-all:amd64" CPSS_VERSION=4.2-2020-09

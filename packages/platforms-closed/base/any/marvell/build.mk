@@ -23,11 +23,11 @@ endif
 
 ONL_CPSS := $(ONLBASE)/packages/platforms-closed/base/any/marvell
 
-ifndef CPSS_NAME
-CPSS_NAME := cpss_release_git_$(CPSS_VERSION)$(CPSS_VERSION_SUFFIX)
-endif
 ifndef CPSS_ARCHIVE_EXT
 CPSS_ARCHIVE_EXT := tar
+endif
+ifndef CPSS_NAME
+CPSS_NAME := cpss_release_git_$(CPSS_VERSION)$(CPSS_VERSION_SUFFIX)
 endif
 ifndef CPSS_ARCHIVE_NAME
 CPSS_ARCHIVE_NAME := $(CPSS_NAME).$(CPSS_ARCHIVE_EXT)
@@ -129,9 +129,13 @@ ifeq ($(CPSS_HAVE_SOURCE),yes)
 	$(CPSS_MAKE) KERNEL_INC_PATH=$(CPSS_TARGET_DIR)/linux \
 	             CPSS_USER_CFLAGS=-D__user= \
 	             $(CPSS_BUILD_OPTS) $(CPSS_BUILD_TARGET)
+	cp $(CPSS_OUTPUT)/$(CPSS_BUILD_TARGET) $(CPSS_TARGET_DIR)
+	cp $(CPSS_OUTPUT)/$(CPSS_BUILD_TARGET).map $(CPSS_TARGET_DIR)
+	cp $(CPSS_OUTPUT)/version_info.c $(CPSS_TARGET_DIR)
 else
 	mkdir -p $(CPSS_OUTPUT)
 	cp $(ONL_CPSS)/$(CPSS)/prebuilt/* $(CPSS_OUTPUT)
+	cp $(ONL_CPSS)/$(CPSS)/prebuilt/* $(CPSS_TARGET_DIR)
 endif
 
 .DEFAULT_GOAL := build

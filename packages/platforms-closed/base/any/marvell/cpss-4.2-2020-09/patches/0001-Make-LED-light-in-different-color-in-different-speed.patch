@@ -1,0 +1,159 @@
+From 7c3f5a20b7ba7c027e21155ecd85e640f875b7c2 Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Mon, 4 Jan 2021 10:58:37 +0800
+Subject: [PATCH] Make LED light in different color in different speed
+
+---
+ .../src/appDemo/userExit/userEventHandler.c        | 115 ++++++++++++++++++++-
+ 1 file changed, 114 insertions(+), 1 deletion(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c b/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c
+index ecb5943..fdf9482 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/userExit/userEventHandler.c
+@@ -17,6 +17,12 @@
+ ********************************************************************************
+ */
+ 
++/* PEGA try */
++#define _BSD_SOURCE
++#include <string.h>
++#include <stdio.h>
++/* Add End */
++
+ #if (defined CHX_FAMILY)
+     #define DXCH_CODE
+ #endif /* (defined CHX_FAMILY) */
+@@ -3683,6 +3689,100 @@ static GT_STATUS appDemoDxChMacSecEventsTreat
+ 
+ #endif
+ 
++/* PEGA Add to handle CPLD register */
++static void pega_set_cpld_reg(GT_U32 portNum, GT_U8 ledType)
++{
++    char cmd[64], buffer[64];
++    FILE *fp;
++    int i2cBus = 7, cpldAddr = 0x75, cpldReg, i = 0;
++    int origValue, newValue, offset = 0;
++
++    switch (portNum)
++    {
++        case 0 :
++        case 4 :
++        case 5 :
++        case 6 :
++        case 7 :
++            cpldReg = 0xc;
++            break;
++        default :
++            cpldReg = 0xb;
++    }
++    /* osPrintf(" [userEventHandler.c] pega_set_cpld_reg() - i2cget -y %d 0x%x 0x%x\n", i2cBus, cpldAddr, cpldReg); */
++
++    memset(cmd, 0x0, sizeof(cmd));
++    sprintf(cmd, "i2cget -y %d 0x%x 0x%x", i2cBus, cpldAddr, cpldReg);
++    fp = popen(cmd, "r");
++    memset(buffer, 0x0, sizeof(buffer));
++    while (fgets(buffer, 64, fp) != NULL)
++    {
++        i++;
++    }
++    pclose(fp);
++
++    origValue = (int)strtol(buffer, NULL, 0);
++    /* printf(" # oriValue = 0x%x\n", origValue); */   /* debug */
++
++    if ( portNum == 0)    /* SFP+ */
++    {
++        if ( ledType == 1 )
++            newValue = origValue | 0x02 ;
++        else
++            newValue = origValue & 0xfd ;
++    }
++    else if ( portNum == 4 || portNum == 5 || portNum == 6 || portNum == 7)    /* QSFP */
++    {
++        if ( ledType == 1 )
++            newValue = origValue | 0x04 ;
++        else
++            newValue = origValue & 0xfb ;
++    }
++    else    /* SFP-28 */
++    {
++        switch (portNum)
++        {
++            case 17:
++                offset = 0;
++                break;
++            case 18:
++                offset = 1;
++                break;
++            case 19:
++                offset = 2;
++                break;
++            case 15:
++                offset = 3;
++                break;
++            case 14:
++                offset = 4;
++                break;
++            case 16:
++                offset = 5;
++                break;
++            case 12:
++                offset = 6;
++                break;
++            case 13:
++                offset = 7;
++                break;
++            default:
++                offset = 0;
++        }
++
++        if ( ledType == 1 )
++            newValue = origValue | ( 1 << offset );
++        else
++            newValue = origValue & ~( 1 << offset );
++    }
++    /* printf(" # newValue = 0x%x\n", newValue); */   /* debug */
++
++    memset(cmd, 0x0, sizeof(cmd));
++    sprintf(cmd, "i2cset -y %d 0x%x 0x%x 0x%x", i2cBus, cpldAddr, cpldReg, newValue);
++    fp = popen(cmd, "w");
++    pclose(fp);
++}
++/* Add End */
+ 
+ /**
+ * @internal appDemoEnPpEvTreat function
+@@ -3733,7 +3833,9 @@ static GT_STATUS appDemoEnPpEvTreat
+     IN  CPSS_PORT_MANAGER_STC   portManagerEvent;
+ #endif
+ 
+-
++/* PEGA try add */
++	CPSS_PORT_SPEED_ENT speed;
++/* Add End */
+ 
+     CPSS_API_LOCK_MAC(devNum,PRV_CPSS_FUNCTIONALITY_CONFIGURATION_CNS);
+     if(0 == PRV_CPSS_IS_DEV_EXISTS_MAC(devNum))
+@@ -4152,6 +4254,17 @@ static GT_STATUS appDemoEnPpEvTreat
+ #ifdef DXCH_CODE
+             if (CPSS_IS_DXCH_FAMILY_MAC(devFamily))
+             {
++/* PEGA try */
++#if 1
++                /* Check current mode */
++                rc = cpssDxChPortSpeedGet(devNum, portNum, &speed);
++                /* osPrintf(" [userEventHandler.c] CPSS_PP_PORT_LINK_STATUS_CHANGED_E port %d speed %d\n", portNum, speed); */ /* PEGA log check link status change and speed */
++                if (speed == CPSS_PORT_SPEED_10000_E || speed == CPSS_PORT_SPEED_1000_E || speed == CPSS_PORT_SPEED_40000_E)
++                    pega_set_cpld_reg(portNum, 1);
++                else
++                    pega_set_cpld_reg(portNum, 0);
++#endif
++/* Add End */
+                 if(portMgr)
+                 {
+                     rc = cpssDxChPortManagerPortParamsGet(devNum, portNum, &portParams);
+-- 
+2.7.4
+
