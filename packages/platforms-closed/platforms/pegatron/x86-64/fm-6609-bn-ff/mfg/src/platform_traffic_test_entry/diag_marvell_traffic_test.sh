@@ -6,13 +6,13 @@
 ## Following are parameters definition.
 {
     ## Common parameters defined
-    source /home/root/mfg/mfg_sources/platform_detect.sh
+    source ${HOME}/mfg/mfg_sources/platform_detect.sh
 
     ## Traffic Test Constant Variable , value defined sync with diag-test.sh
-    TRAFFIC_TEST_MODE_PT_PRETEST=2
-    TRAFFIC_TEST_MODE_PT_BURNIN=3
-    #TRAFFIC_TEST_MODE_FLOODING=4
-    TRAFFIC_TEST_MODE_PT_4C=5
+    TRAFFIC_TEST_MODE_PT_PRETEST=3
+    TRAFFIC_TEST_MODE_PT_BURNIN=4
+    #TRAFFIC_TEST_MODE_FLOODING=5
+    TRAFFIC_TEST_MODE_PT_4C=6
 
     ## Parameter for Debug
     DBG_PRINT_PARA=0
@@ -21,7 +21,7 @@
     # --------------------------------------------------------------------------------------------------------------------------------------- #
 
     ## Log Directory Define
-    # LOG_PATH_MAC="/home/root/testLog/MAC"
+    # LOG_PATH_MAC="${HOME}/testLog/MAC"
     if [ ! -d "$LOG_PATH_MAC" ]; then
         mkdir "$LOG_PATH_MAC"
     fi
@@ -138,7 +138,7 @@ function Only_Parse_Log
     else
         mv "$MARVELL_TRAFFIC_TEST_RESULT_LOG" "${LOG_PATH_MAC}/traffic_test_${this_cycle}.log"
     fi
-    usleep 30000
+    sleep 0.003
 }
 
 # ======================================================================================================================================= #
@@ -153,7 +153,7 @@ if (( $# == 2 ));then
 fi
 
 ## Parameter for Internal Traffic Test
-para_tfc_mode_sel=${1:-"3"}
+para_tfc_mode_sel=${1:-"4"}
 shift 1
 if (( $para_tfc_mode_sel == $TRAFFIC_TEST_MODE_PT_PRETEST )); then
     para_tfc_qsfp_sp=${1:-"100"}
@@ -199,11 +199,11 @@ fi
 
 if (( $para_tfc_mode_sel == $TRAFFIC_TEST_MODE_PT_PRETEST )); then
     echo "[Diag Msg] Run PreTest Mode"
-    bash $MFG_SOURCE_DIR/gemini_pretest.sh sfp=$para_tfc_sfp_sp qsfp=$para_tfc_qsfp_sp packet=$para_loopback_test_pkt_num
+    bash ${MFG_WORK_DIR}/platform_traffic_test/gemini_pretest.sh sfp=$para_tfc_sfp_sp qsfp=$para_tfc_qsfp_sp packet=$para_loopback_test_pkt_num
 elif (( $para_tfc_mode_sel == $TRAFFIC_TEST_MODE_PT_BURNIN )); then
     echo "[Diag Msg] Run BurnIn Mode"
     marvell_tfc_pkt_time=$(( $para_tfc_pkt_time * 60 )) # convert time unit minute to second
-    bash $MFG_SOURCE_DIR/gemini_burnin.sh seconds=$marvell_tfc_pkt_time if=$para_tfc_if tfc-cycle=$curr_pwr_cyc_round
+    bash ${MFG_WORK_DIR}/platform_traffic_test/gemini_burnin.sh seconds=$marvell_tfc_pkt_time if=$para_tfc_if tfc-cycle=$curr_pwr_cyc_round
 
     ## Enter Marvell SDK.
     # $MFG_WORK_DIR/appDemo   (called in script)
@@ -222,7 +222,7 @@ elif (( $para_tfc_mode_sel == $TRAFFIC_TEST_MODE_PT_BURNIN )); then
 elif (( $para_tfc_mode_sel == $TRAFFIC_TEST_MODE_PT_4C )); then
     echo "[Diag Msg] Run PT 4C Mode"
     marvell_tfc_pkt_time=$(( $para_tfc_pkt_time * 60 )) # convert time unit minute to second
-    bash $MFG_SOURCE_DIR/gemini_burnin.sh seconds=$marvell_tfc_pkt_time if=$para_tfc_if tfc-mode=6 tfc-cycle=$curr_pwr_cyc_round tfc-round=$para_tfc_cycle    ## tfc-mode '6' is defined same in SDK.
+    bash ${MFG_WORK_DIR}/platform_traffic_test/gemini_burnin.sh seconds=$marvell_tfc_pkt_time if=$para_tfc_if tfc-mode=6 tfc-cycle=$curr_pwr_cyc_round tfc-round=$para_tfc_cycle    ## tfc-mode '6' is defined same in SDK.
 
     sleep 3
 

@@ -7,9 +7,15 @@
 
 - onl-platform-modules-closed-x86-64-pegatron-fm-6609-bn-ff
 - onl-platform-sdk-x86-64-pegatron-fm-6609-bn-ff
+- mfg-utils
 - onl-platform-mfg-x86-64-pegatron-fm-6609-bn-ff
 - onl-platform-apps-x86-64-pegatron-fm-6609-bn-ff
 - linuxptp
 - onl-platform-modules-ptp-x86-64-pegatron-fm-6609-bn-ff
-
-
+- ptpd
+- bc
+- lsscsi
+- busybox
+- stress
+- memtester
+- python-serial

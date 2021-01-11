@@ -1,0 +1,34 @@
+############################################################
+#
+# PKG template for all base module packages
+#
+############################################################
+prerequisites:
+  packages:
+    - $KERNELS
+
+packages:
+  - name: mfg-utils
+    version: 0.1.0
+    arch: $ARCH
+    copyright: Copyright 2013, 2014, 2015 Big Switch Networks
+    maintainer: support@bigswitch.com
+    support: opennetworklinux@googlegroups.com
+    summary: Manufacture Uitilities Package
+
+    files:
+      - builds/apps/mii-tool: /root/mfg/
+      - builds/apps/cpld_upgrade_bdxde: /root/mfg/cpld_fw_upgrade/
+      - builds/apps/cpld_upgrade_bdxde_npu: /root/mfg/cpld_fw_upgrade/
+      - builds/apps/uart_to_i2c: /root/mfg/tools/
+      - builds/apps/onie-syseeprom: /sbin/onie-syseeprom
+      - builds/modules/iqvlinux.ko: /root/mfg/tools/intel_nvm_flash_update_tool/
+      - builds/modules/lanconf64e: /root/mfg/tools/intel_nvm_flash_update_tool/
+      - builds/modules/eeupdate64e: /root/mfg/tools/intel_nvm_flash_update_tool/
+      - builds/modules/nvmupdate64e: /root/mfg/tools/intel_nvm_flash_update_tool/
+      - builds/mem_tester/memtester: /root/mfg/mem-tester
+      - builds/script/mcu_fw_upgrade/: /root/mfg/mcu_fw_upgrade/
+      - builds/script/cpld_fw_upgrade/JTAG_gpio_BDXDE_NPU.sh: /root/mfg/cpld_fw_upgrade/
+      - builds/script/cpld_fw_upgrade/JTAG_gpio_BDXDE.sh: /root/mfg/cpld_fw_upgrade/
+      - builds/script/mfg_common_scripts/: /root/mfg/mfg_sources/
+    changelog: Changes

@@ -13,6 +13,6 @@ class OnlPlatform_x86_64_pegatron_fm_6609_bn_ff_r0(OnlPlatformPegatron):
 	self.insmod('pega_ptp_interface')
 	self.insmod('pega_ptp_clock')
 	self.insmod('ptp_clockmatrix')
-        os.system("cd /root && ./setup.sh")
+	os.system("cd /root && ./setup_fhgw.sh")
 	os.system("cd /root && ./setup_idt.sh")
 	return True

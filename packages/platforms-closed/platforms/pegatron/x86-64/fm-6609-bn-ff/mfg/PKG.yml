@@ -17,10 +17,13 @@ packages:
     summary: ONL Platform Manufacture Package for the $basename
 
     files:
+      - builds/jessie/firmware/cpld/: /root/mfg/cpld_fw_upgrade/
+      - builds/jessie/firmware/mcu/: /root/mfg/mcu_fw_upgrade/
+      - builds/jessie/firmware/intel_nvm/: /root/mfg/tools/intel_nvm_flash_update_tool/
       - src/platform_initialization/: /root/mfg/platform_initialization/
       - src/platform_traffic_test_entry/: /root/mfg/platform_traffic_test_entry/
       - src/tools/detect_mb.sh: /root/mfg/tools/
-      - src/setup.sh: /root/
+      - src/setup.sh: /root/setup_fhgw.sh
 
   - name: onl-platform-sdk-$basename
     version: 1.0.0

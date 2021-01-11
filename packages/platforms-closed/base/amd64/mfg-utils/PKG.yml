@@ -1,0 +1,5 @@
+!include $ONLBASE/packages/platforms-closed/base/any/mfg-utils/APKG.yml ARCH=amd64 TOOLCHAIN=x86_64-linux-gnu KERNELS="onl-kernel-4.19-lts-x86-64-all-modules:amd64"
+
+
+
+

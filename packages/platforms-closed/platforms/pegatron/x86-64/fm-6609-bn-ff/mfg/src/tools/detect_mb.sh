@@ -100,8 +100,7 @@ function Project_ID_Check ()
         1001)   PROJECT_NAME="GEMINI"
                 ;;
         1111)   ## if strap pin are full, will decide by CPLD register (0xFE [6:0])
-                i2cset -y $I2C_BUS 0x73 0x0 0x1  ## $I2C_MUX_B_CHANNEL_0
-                data_result=$( { i2cget -y $I2C_BUS 0x74 0xFE ; } 2>&1 )
+                data_result=$( { i2cget -y 6 0x74 0xFE ; } 2>&1 )    #I2C_BUS_MUX_B_CHANNEL_1=5/6
                 board_ID_bit=$(( $data_result & 0x7f ))
                 case $board_ID_bit in
                     0001001) PROJECT_NAME="GEMINI";;
