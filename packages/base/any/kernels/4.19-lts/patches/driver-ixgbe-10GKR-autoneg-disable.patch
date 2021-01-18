@@ -1,0 +1,49 @@
+diff --git a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
+index 85280765d793d..2d7c870180ab6 100644
+--- a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
++++ b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
+@@ -10877,6 +10877,14 @@ static int ixgbe_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+ err_dma:
+ 	if (!adapter || disable_dev)
+ 		pci_disable_device(pdev);
++
++	/* 20201130 PEGA add for disable AN */
++	if(hw->phy.ops.setup_link)
++	{
++		hw->phy.ops.setup_link(hw);
++	}
++	/* Add End */
++
+ 	return err;
+ }
+ 
+diff --git a/drivers/net/ethernet/intel/ixgbe/ixgbe_x550.c b/drivers/net/ethernet/intel/ixgbe/ixgbe_x550.c
+index 9772016222c30..25ad16a64ff0a 100644
+--- a/drivers/net/ethernet/intel/ixgbe/ixgbe_x550.c
++++ b/drivers/net/ethernet/intel/ixgbe/ixgbe_x550.c
+@@ -2537,6 +2537,12 @@ static s32 ixgbe_setup_kr_speed_x550em(struct ixgbe_hw *hw,
+ 	if (speed & IXGBE_LINK_SPEED_1GB_FULL)
+ 		reg_val |= IXGBE_KRM_LINK_CTRL_1_TETH_AN_CAP_KX;
+ 
++	/* 20201130 PEGA Add for disable AN */
++	printk(" ## Putting it into 10G Force Mode.\n");
++	reg_val = (IXGBE_KRM_LINK_CTRL_1_TETH_FORCE_SPEED_10G |
++		     IXGBE_KRM_LINK_CTRL_1_TETH_AN_RESTART);
++	/* Add End */
++
+ 	status = hw->mac.ops.write_iosf_sb_reg(hw,
+ 					IXGBE_KRM_LINK_CTRL_1(hw->bus.lan_id),
+ 					IXGBE_SB_IOSF_TARGET_KR_PHY, reg_val);
+@@ -2551,8 +2557,10 @@ static s32 ixgbe_setup_kr_speed_x550em(struct ixgbe_hw *hw,
+ 			return status;
+ 
+ 		reg_val &= ~IXGBE_KRM_PMD_FLX_MASK_ST20_SPEED_MASK;
+-		reg_val |= IXGBE_KRM_PMD_FLX_MASK_ST20_SPEED_AN;
+-		reg_val |= IXGBE_KRM_PMD_FLX_MASK_ST20_AN_EN;
++		//reg_val |= IXGBE_KRM_PMD_FLX_MASK_ST20_SPEED_AN;	/* 20201130 PEGA mark off for disable AN */
++		//reg_val |= IXGBE_KRM_PMD_FLX_MASK_ST20_AN_EN;		/* 20201130 PEGA mark off */
++		reg_val |= IXGBE_KRM_PMD_FLX_MASK_ST20_SPEED_10G;	/* 20201130 PEGA add for force on 10G speed */
++		reg_val &= ~IXGBE_KRM_PMD_FLX_MASK_ST20_AN_EN;		/* 20201130 PEGA add for disable AN */
+ 		reg_val &= ~IXGBE_KRM_PMD_FLX_MASK_ST20_AN37_EN;
+ 		reg_val &= ~IXGBE_KRM_PMD_FLX_MASK_ST20_SGMII_EN;
+ 

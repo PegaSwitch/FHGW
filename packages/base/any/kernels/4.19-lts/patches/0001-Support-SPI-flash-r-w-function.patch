@@ -1,0 +1,64 @@
+From f1c9357fcbba154e8cec256e33462c347b2e0367 Mon Sep 17 00:00:00 2001
+From: JennyLien <jenny_lien@pegatroncorp.com>
+Date: Fri, 29 Jan 2021 10:04:03 +0800
+Subject: [PATCH] Support SPI flash r/w function
+
+---
+ drivers/mfd/lpc_ich.c               | 3 ++-
+ drivers/mtd/spi-nor/intel-spi-pci.c | 3 ++-
+ drivers/mtd/spi-nor/intel-spi.c     | 4 ++++
+ 3 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mfd/lpc_ich.c b/drivers/mfd/lpc_ich.c
+index 53dc1a4..48c1751 100644
+--- a/drivers/mfd/lpc_ich.c
++++ b/drivers/mfd/lpc_ich.c
+@@ -1121,7 +1121,8 @@ static int lpc_ich_init_spi(struct pci_dev *dev)
+ 			res->end = res->start + SPIBASE_LPT_SZ - 1;
+ 
+ 			pci_read_config_dword(dev, BCR, &bcr);
+-			info->writeable = !!(bcr & BCR_WPD);
++			//info->writeable = !!(bcr & BCR_WPD);
++                        info->writeable = 1;    /* PEGA */
+ 		}
+ 		break;
+ 
+diff --git a/drivers/mtd/spi-nor/intel-spi-pci.c b/drivers/mtd/spi-nor/intel-spi-pci.c
+index 872b409..0feecfc 100644
+--- a/drivers/mtd/spi-nor/intel-spi-pci.c
++++ b/drivers/mtd/spi-nor/intel-spi-pci.c
+@@ -47,7 +47,8 @@ static int intel_spi_pci_probe(struct pci_dev *pdev,
+ 		pci_write_config_dword(pdev, BCR, bcr);
+ 		pci_read_config_dword(pdev, BCR, &bcr);
+ 	}
+-	info->writeable = !!(bcr & BCR_WPD);
++	//info->writeable = !!(bcr & BCR_WPD);
++        info->writeable = 1;    /* PEGA */
+ 
+ 	ispi = intel_spi_probe(&pdev->dev, &pdev->resource[0], info);
+ 	if (IS_ERR(ispi))
+diff --git a/drivers/mtd/spi-nor/intel-spi.c b/drivers/mtd/spi-nor/intel-spi.c
+index d60cbf2..64c226f 100644
+--- a/drivers/mtd/spi-nor/intel-spi.c
++++ b/drivers/mtd/spi-nor/intel-spi.c
+@@ -9,6 +9,8 @@
+  * published by the Free Software Foundation.
+  */
+ 
++#define DEBUG    /* PEGA open dump SPI information */
++
+ #include <linux/err.h>
+ #include <linux/io.h>
+ #include <linux/iopoll.h>
+@@ -912,6 +914,8 @@ struct intel_spi *intel_spi_probe(struct device *dev,
+ 
+ 	intel_spi_fill_partition(ispi, &part);
+ 
++        writeable = true;     /* PEGA add */
++
+ 	/* Prevent writes if not explicitly enabled */
+ 	if (!ispi->writeable || !writeable)
+ 		ispi->nor.mtd.flags &= ~MTD_WRITEABLE;
+-- 
+2.7.4
+

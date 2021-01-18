@@ -31,3 +31,6 @@ driver-hwmon-max6620.patch
 0001-prepare-to-add-new-i2c-mux-driver-PCA9641.patch
 0002-add-new-i2c-mux-driver-PCA9641-support.patch
 0001-add-PTP-write-phase-mode.patch
+0003-driver-igb-m88e1512-phy.patch
+driver-ixgbe-10GKR-autoneg-disable.patch
+0001-Support-SPI-flash-r-w-function.patch
