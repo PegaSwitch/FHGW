@@ -404,7 +404,15 @@ int8_t fheth_get_rx_stats(uint8_t portno)
     return FPGA_RET_SUCCESS;
 }
 
-int8_t fpga_clear_tx_counter(uint8_t portno, int8_t cntr_cfg)
+int32_t get_cfg_tx_stats(uint8_t portno)
+{
+    if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
+        return FPGA_RET_FAILED;
+
+    return (FHGW_FPGA_REG_READ(FPGA_ETH_REGISTER_BLOCK, portno, TX_CFG_STATS_ADDRESS));
+}
+
+int32_t set_cfg_tx_stats(uint8_t portno, int8_t cntr_cfg)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -412,7 +420,15 @@ int8_t fpga_clear_tx_counter(uint8_t portno, int8_t cntr_cfg)
     return (FHGW_FPGA_REG_WRITE(FPGA_ETH_REGISTER_BLOCK, portno, TX_CFG_STATS_ADDRESS, cntr_cfg));
 }
 
-int8_t fpga_clear_rx_counter(uint8_t portno, int8_t cntr_cfg)
+int32_t get_cfg_rx_stats(uint8_t portno)
+{
+    if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
+        return FPGA_RET_FAILED;
+
+    return (FHGW_FPGA_REG_READ(FPGA_ETH_REGISTER_BLOCK, portno, RX_CFG_STATS_ADDRESS));
+}
+
+int32_t set_cfg_rx_stats(uint8_t portno, int8_t cntr_cfg)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -527,7 +543,7 @@ int8_t get_roe_flowId(uint8_t portno)
     return FHGW_FPGA_REG_READ(FPGA_ROE_REGISTER_BLOCK, portno, FPGA_ROE_FLOW_ID);
 }
 
-int8_t set_roe_flowid(uint8_t portno, int8_t flowid)
+int8_t set_roe_flowid(uint8_t portno, int32_t flowid)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -535,7 +551,7 @@ int8_t set_roe_flowid(uint8_t portno, int8_t flowid)
     return FHGW_FPGA_REG_WRITE(FPGA_ROE_REGISTER_BLOCK, portno, FPGA_ROE_FLOW_ID, flowid);
 }
 
-int8_t fpga_get_roe_use_seq(uint8_t portno)
+int8_t get_roe_use_seq(uint8_t portno)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -543,7 +559,7 @@ int8_t fpga_get_roe_use_seq(uint8_t portno)
     return FHGW_FPGA_REG_READ(FPGA_ROE_REGISTER_BLOCK, portno, FPGA_ROE_USE_SEQUENCE);
 }
 
-int8_t fpga_set_roe_use_seq(uint8_t portno, uint8_t use_seq)
+int8_t set_roe_use_seq(uint8_t portno, uint8_t use_seq)
 { 
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -551,7 +567,7 @@ int8_t fpga_set_roe_use_seq(uint8_t portno, uint8_t use_seq)
     return FHGW_FPGA_REG_WRITE(FPGA_ROE_REGISTER_BLOCK, portno, FPGA_ROE_USE_SEQUENCE, use_seq);
 }
 
-int8_t fpga_get_roe_packet_len(uint8_t portno)
+int16_t get_roe_packet_len(uint8_t portno)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -559,7 +575,7 @@ int8_t fpga_get_roe_packet_len(uint8_t portno)
     return FHGW_FPGA_REG_READ(FPGA_ROE_REGISTER_BLOCK, portno, FPGA_ROE_PACKET_LENGTH);
 }
 
-int8_t fpga_set_roe_packet_len(uint8_t portno, uint16_t packetlen)
+int16_t set_roe_packet_len(uint8_t portno, uint16_t packetlen)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -567,7 +583,7 @@ int8_t fpga_set_roe_packet_len(uint8_t portno, uint16_t packetlen)
     return FHGW_FPGA_REG_WRITE(FPGA_ROE_REGISTER_BLOCK, portno, FPGA_ROE_PACKET_LENGTH, packetlen);
 }
 
-int8_t fpga_get_roe_acccept_time_window(uint8_t portno)
+int32_t get_roe_acccept_time_window(uint8_t portno)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;
@@ -575,7 +591,7 @@ int8_t fpga_get_roe_acccept_time_window(uint8_t portno)
     return FHGW_FPGA_REG_READ(FPGA_ROE_REGISTER_BLOCK, portno, FPGA_ROE_ACCEPT_TIME_WINDOW);
 }
 
-int8_t fpga_set_roe_accept_time_window(uint8_t portno, uint32_t time_window)
+int32_t set_roe_accept_time_window(uint8_t portno, uint32_t time_window)
 {
     if(fpga_validate_input_params(FPGA_VALIDATE_PORTNUM, portno) != FPGA_RET_SUCCESS)
         return FPGA_RET_FAILED;

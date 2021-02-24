@@ -1,6 +1,19 @@
 #include <stdio.h>
 #include <fhgw_fpga_lib.h>
 
+void fghw_fpga_event(void *);
+
+void fghw_fpga_event(void *irq_event_in)
+{
+    fhgw_fpga_irq_event_info *irq_event_info = (fhgw_fpga_irq_event_info *)irq_event_in;
+
+    if(irq_event_info == NULL) {
+        printf("irq_event_info - NULL");
+    } else {
+        printf("EVENT : %d", irq_event_info->event_val);
+    }
+}
+
 int8_t fpga_dr_config_func()
 {
     uint32_t channel_no = 0, linerate;
@@ -25,6 +38,7 @@ int8_t fpga_dr_config_func()
         switch(opt) {
             case 1:
                 fpga_dr_init();
+                fhgw_fpga_EventHandlerInit(fghw_fpga_event);
                 break;
             case 2:
                 fpga_enable_ILB_without_calibration(channel_no);
@@ -37,14 +51,15 @@ int8_t fpga_dr_config_func()
                 break;
             case 5:
                 printf("\n Line Rate Menu");
-                printf("\n 1. CPRI_10G_TUNNEL");
-                printf("\n 2. CPRI_2p4G_tunneling");
+                printf("\n 1. E25G_PTP_FEC");
+                printf("\n 2. CPRI_9p8G_tunneling");
                 printf("\n 3. CPRI_4p9G_tunneling");
-                printf("\n 4. CPRI_9p8G_tunneling");
+                printf("\n 4. CPRI_2p4G_tunneling");
+                printf("\n 5. CPRI_10G_TUNNEL");
                 printf("\n Choose the linerate :");
                 scanf("%d", &linerate);
 
-                if (linerate > 0 && linerate < 5)           
+                if (linerate > 0 && linerate <= 5)           
                     fpga_dr_linerate_configure(channel_no, linerate);
                 else 
                     printf("\n Invalid linerate selection");
@@ -73,7 +88,7 @@ int main()
 		printf("\n 4. Read FPGA revision");
 		printf("\n 5. Read Scratchpad reg");
 		printf("\n 6. write Scratchpad reg");
-		printf("\n 7. Dynamic onfiguration menu");
+		printf("\n 7. Dynamic Reconfiguration menu");
 		printf("\n 8. Close");
 		printf("\n 9. Exit");
 

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #define FPGA_SYSTEM_REGISTER_BASE				0x00000000
 #define FPGA_SYSTEM_REGISTER_SIZE				0x10000000
@@ -184,6 +185,23 @@
 #define FPGA_ROE_INT_EVENT                       0x0184
 #define FPGA_ROE_INT_STATUS                      0x0188
 
+/* Tx Mac Registers */
+#define FPGA_MAC_SRC_ADDR_LBYTES        0x1030
+#define FPGA_MAC_SRC_ADDR_HBYTES        0x1034
+
+/* Tx Statistics Registers */
+#define TX_STATS_START_ADDRESS                   0x2000
+#define TX_STATS_END_ADDRESS                     0x21A4
+#define TX_CFG_STATS_ADDRESS                     0x2114
+
+/* Rx Statistics Registers */
+#define RX_STATS_START_ADDRESS                   0x2400
+#define RX_STATS_END_ADDRESS                     0x258C
+#define RX_CFG_STATS_ADDRESS                     0x2514
+
+#define FPGA_MIN_CHANNEL_NUM			0x0
+#define FPGA_MAX_CHANNEL_NUM			0x6
+
 #define FHGW_FPGA_REG_READ(base, channel, offset)                fpga_reg_read(base, channel, offset)      
 #define FHGW_FPGA_REG_WRITE(base, channel, offset, value)        fpga_reg_write(base, channel, offset, value)      
 
@@ -220,17 +238,29 @@ typedef enum {
     LED_USR4,
 } ledno;
 
-struct roe_agn_mode 
+struct roe_agn_mode
 {
     bool en_agn_mode;
     bool en_str_agn_mode_tunl;
 };
 
+struct roe_stats_cnt
+{
+    int roe_out_of_window_cnt;
+    int roe_seqnum_err_cnt;
+    int roe_drop_of_pckts_cnt;
+    int roe_inject_pckts_cnt;
+};
+
+typedef struct {
+    uint32_t event_val;
+} fhgw_fpga_irq_event_info;
+
 typedef enum {
-	E25G_PTP_FEC,
-	CPRI_2p4G_tunneling,
-	CPRI_4p9G_tunneling,
+	E25G_PTP_FEC = 1,
 	CPRI_9p8G_tunneling,
+	CPRI_4p9G_tunneling,
+	CPRI_2p4G_tunneling,
 	CPRI_10G_TUNNEL,
 } port_mode;
 
@@ -256,33 +286,55 @@ typedef enum {
 	CPRI_PORT5,
 } port_no;
 
+typedef enum {
+		FPGA_VALIDATE_BLOCK = 0,
+		FPGA_VALIDATE_CHANNEL,
+		FPGA_VALIDATE_PORTNUM,
+		FPGA_VALIDATE_PORTSPEED,
+		FPGA_VALIDATE_LED,
+} validate;
+
 int32_t fpga_dev_open();
 void fpga_dev_close();
 
-int32_t fpga_reg_read(uint32_t block, uint8_t channelno, uint32_t offset);
-int8_t fpga_reg_write(uint32_t block, uint8_t channelno, uint32_t offset, uint32_t value);
+pthread_t pThread_id;
+typedef void (*event_fp)(void*);
+void *fhgw_fpga_wait_evnt_irq();
+int8_t fhgw_fpga_EventHandlerInit(event_fp *func_ptr);
+
+int32_t fpga_reg_read(uint8_t block, uint8_t channelno, uint32_t offset);
+int8_t fpga_reg_write(uint8_t block, uint8_t channelno, uint32_t offset, uint32_t value);
 
 int8_t fpga_dr_linerate_configure(uint8_t channel, uint8_t linerate);
-void set_fheth_tx_mac_address(int32_t portno, void *addr);
-void *fheth_get_port_speed(int32_t portno);
-void *fheth_set_port_speed(int32_t portno);
-void *fheth_get_tx_stats(int32_t portno);
-void *fheth_get_rx_stats(int32_t portno);
-int8_t get_cpri_port_mode(int32_t  portno);
-int8_t set_cpri_port_mode(int32_t  portno, int32_t port_mode);
-int8_t set_loopback_mode(int32_t  portno, int32_t loopback_mode);
+int8_t set_fheth_tx_mac_address(uint8_t portno, void *addr);
+int8_t fheth_get_port_speed(uint8_t portno);
+int8_t fheth_set_port_speed(uint8_t portno);
+int8_t fheth_get_tx_stats(uint8_t portno);
+int8_t fheth_get_rx_stats(uint8_t portno);
+int8_t get_cpri_port_mode(uint8_t portno);
+int8_t set_cpri_port_mode(uint8_t portno, uint8_t port_mode);
+int8_t set_loopback_mode(uint8_t portno, int8_t loopback_mode);
+int8_t fpga_clear_tx_counter(uint8_t portno, int8_t cntr_cfg);
+int8_t fpga_clear_rx_counter(uint8_t portno, int8_t cntr_cfg);
 
-void *get_roe_srcaddress(int32_t portno);
-int8_t set_roe_srcaddress(int32_t portno, void *addr);
-char *get_roe_dstaddress(int32_t portno, void *addr);
-int8_t set_roe_dstaddress(int32_t portno, void *addr);
-int8_t get_roe_flowId(int32_t portno);
-int8_t set_roe_flowid(int32_t portno, int32_t flowid);
+int8_t get_roe_srcaddress(uint8_t portno, void *addr);
+int8_t set_roe_srcaddress(uint8_t portno, void *addr);
+int8_t get_roe_dstaddress(uint8_t portno, void *addr);
+int8_t set_roe_dstaddress(uint8_t portno, void *addr);
+int8_t get_roe_flowId(uint8_t portno);
+int8_t set_roe_flowid(uint8_t portno, int8_t flowid);
+int8_t fpga_get_roe_use_seq(uint8_t portno);
+int8_t fpga_set_roe_use_seq(uint8_t portno, uint8_t use_seq);
+int8_t fpga_get_roe_packet_len(uint8_t portno);
+int8_t fpga_set_roe_packet_len(uint8_t portno, uint16_t packetlen);
+int8_t fpga_get_roe_acccept_time_window(uint8_t portno);
+int8_t fpga_set_roe_accept_time_window(uint8_t portno, uint32_t time_window);
+int8_t get_roe_stats_count(uint8_t portno, struct roe_stats_cnt *stats_cnt);
 
-struct roe_agn_mode *get_roe_agnostic_mode(int32_t portno);
-int32_t set_roe_agnostic_mode(int32_t portno, struct roe_agn_mode *agm);
+int8_t get_roe_agnostic_mode(uint8_t portno, struct roe_agn_mode *agm);
+int8_t set_roe_agnostic_mode(uint8_t portno, struct roe_agn_mode *agm);
 
-int8_t fhgw_led_ctrl(int32_t ledno, int32_t led_ctrl);
+int8_t fhgw_led_ctrl(uint8_t ledno, uint8_t led_ctrl);
 
 int32_t get_fpga_rev_ver();
 int32_t rd_scratch_pad_reg();
