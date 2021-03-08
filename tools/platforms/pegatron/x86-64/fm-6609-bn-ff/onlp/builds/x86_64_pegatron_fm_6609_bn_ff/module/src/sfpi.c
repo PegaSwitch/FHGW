@@ -94,7 +94,7 @@ onlp_sfpi_init(void)
 		//SFP and SFP+ module needs to disable TX when initialize. 
 		if((port >= 1 && port <= NUM_OF_SFP_PORT) ||
 			(port == (NUM_OF_SFP_PORT+NUM_OF_QSFP_PORT+NUM_OF_SFPPLUS_PORT))){
-			onlp_sfpi_control_set(port, ONLP_SFP_CONTROL_TX_DISABLE, 1);
+			onlp_sfpi_control_set(port, ONLP_SFP_CONTROL_TX_DISABLE, 0);
 		}
     }
     for(port = (NUM_OF_SFP_PORT+1); port <= (NUM_OF_SFP_PORT+NUM_OF_QSFP_PORT); port++) {

@@ -145,11 +145,11 @@ static int onlp_get_pmbus_iin_info(onlp_psu_info_t *p, int bus_no, int address)
 {
 	int data = 0;
 
-    /* READ VIN */
-    data  = onlp_i2c_readw(bus_no, address, PMBUS_VOLTAGE_IN_REG, ONLP_I2C_F_FORCE);
+    /* READ IIN */
+    data  = onlp_i2c_readw(bus_no, address, PMBUS_CURRENT_IN_REG, ONLP_I2C_F_FORCE);
 	if(data != -1) {
 	    p->caps |= ONLP_PSU_CAPS_VIN;
-	    p->mvin = proc_pmbus_raw_data(data);
+	    p->miin = proc_pmbus_raw_data(data);
 	}
 	return 0;
 }
@@ -158,7 +158,7 @@ static int onlp_get_pmbus_iout_info(onlp_psu_info_t *p, int bus_no, int address)
 {
 	int data = 0;
 
-    /* READ VIN */
+    /* READ IOUT */
     data  = onlp_i2c_readw(bus_no, address, PMBUS_CURRENT_OUT_REG, ONLP_I2C_F_FORCE);
 	if(data != -1) {
 	    p->caps |= ONLP_PSU_CAPS_IOUT;
@@ -202,7 +202,7 @@ static int onlp_get_pmbus_pin_info(onlp_psu_info_t *p, int bus_no, int address)
 {
 	int data = 0;
 	
-    /* READ VIN */
+    /* READ PIN */
     data  = onlp_i2c_readw(bus_no, address, PMBUS_POWER_IN_REG, ONLP_I2C_F_FORCE);
 	if(data != -1) {
 	    p->caps |= ONLP_PSU_CAPS_PIN;
@@ -215,7 +215,7 @@ static int onlp_get_pmbus_pout_info(onlp_psu_info_t *p, int bus_no, int address)
 {
 	int data = 0;
 	
-    /* READ VIN */
+    /* READ POUT */
     data  = onlp_i2c_readw(bus_no, address, PMBUS_POWER_OUT_REG, ONLP_I2C_F_FORCE);
 	if(data != -1) {
 	    p->caps |= ONLP_PSU_CAPS_POUT;
@@ -376,7 +376,7 @@ onlp_psui_info_get(onlp_oid_t id, onlp_psu_info_t* info)
 	bus_no = FM_6609_BN_FF_I2C_MUX2_BUS_START_FROM + FM_6609_BN_FF_I2C_MUX_CH1;
 
     pid = ONLP_OID_ID_GET(id);
-	if(pid > PSU_ID_VRM1)
+	if(pid > PSU_ID_VRM3)
         return ONLP_STATUS_E_INVALID;
 
     data  = onlp_i2c_readb(bus_no, FM_6609_BN_FF_CPLD_B, FM_6609_BN_FF_CPLD_B_PSR, ONLP_I2C_F_FORCE);
@@ -440,6 +440,12 @@ onlp_psui_info_get(onlp_oid_t id, onlp_psu_info_t* info)
 	
     /* READ IOUT */
 	onlp_get_pmbus_iout_info(p, bus_no, psu_addr);
+	
+    /* READ PIN */
+	onlp_get_pmbus_pin_info(p, bus_no, psu_addr);
+	
+    /* READ POUT */
+	onlp_get_pmbus_pout_info(p, bus_no, psu_addr);
 	
     /* READ mfr_model  */
 	onlp_get_pmbus_mfr_model_info(p, bus_no, psu_addr);
