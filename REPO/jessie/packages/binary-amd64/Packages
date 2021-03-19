@@ -23,10 +23,10 @@ Maintainer: support@bigswitch.com
 Installed-Size: 141
 Depends: onl-vendor-pegatron-modules
 Filename: ./onl-platform-modules-ptp-x86-64-pegatron-fm-6609-bn-ff_1.0.0_amd64.deb
-Size: 51072
-MD5sum: d2e9342b82e99f0384b8ec27c25a0517
-SHA1: 108361c328e0895c19961aea206f1ebc1eaa8aec
-SHA256: 36cca57c21ac36d113c8cdbfa2a2e08cb94bf489a0f38c1c4d28356997f2e346
+Size: 51086
+MD5sum: a3df3bb9f798f59aae888591d6b13e19
+SHA1: 9aa6deed0964c0bfac0bf0ca44fc1353a0de9374
+SHA256: f7a36608841ee73a2880e31821b48125f8c3e06fba101eec5eafdab632c9adbc
 Section: default
 Priority: extra
 Homepage: http://opennetlinux.org
