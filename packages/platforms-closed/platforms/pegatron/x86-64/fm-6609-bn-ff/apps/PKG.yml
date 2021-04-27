@@ -17,5 +17,7 @@ packages:
 
     files:
       - builds/: /root/
+      - src/prebuild/fhgw_fpga_app: /root/
+      - src/script/fhgw_fpga_startup.sh: /root/
 
     changelog: Changes

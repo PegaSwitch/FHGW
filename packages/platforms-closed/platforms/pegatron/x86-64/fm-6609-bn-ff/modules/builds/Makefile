@@ -5,6 +5,7 @@ BASENAME := x86-64-pegatron-fm-6609-bn-ff
 ARCH := x86_64
 BASE_DIR	:= $(ONL)/packages/platforms-closed/platforms/pegatron/FHGW
 PREBUILD_FPGA_MODULES := $(BASE_DIR)/modules/fpga
+PREBUILD_FPGA_FIRMWARE := $(BASE_DIR)/firmwares/fpga
 PREBUILD_CVP_MODULES := $(BASE_DIR)/modules/cvp
 KERNEL_MBUILD := $(shell onlpm --find-dir $(KERNELS) mbuilds)
 KERNELRELEASE := $(shell cat $(KERNEL_MBUILD)/include/config/kernel.release 2> /dev/null)
@@ -18,6 +19,8 @@ ifeq ($(USE_PREBUILD_FPGA_DRV),yes)
 		mkdir -p $(DIST_DIR); \
 	fi
 	cp $(PREBUILD_FPGA_MODULES)/fhgw_fpga_drv_1v4.ko $(DIST_DIR)/fhgw_fpga_drv.ko
+	cp $(PREBUILD_CVP_MODULES)/altera_cvp.ko $(DIST_DIR)
 else
 	ARCH=$(ARCH) $(ONL)/tools/scripts/kmodbuild.sh "$(KERNELS)" "$(KMODULES)" "$(SUBDIR)" "$(KINCLUDES)"
 endif
+	cp $(PREBUILD_FPGA_FIRMWARE)/* $(DIST_DIR)	
