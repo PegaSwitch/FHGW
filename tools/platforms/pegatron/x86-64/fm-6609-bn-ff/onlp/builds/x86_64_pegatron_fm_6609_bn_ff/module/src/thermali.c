@@ -187,7 +187,7 @@ int Get_VRM_Thermal_Status(onlp_thermal_info_t* info, int tid)
 int
 Get_Power_Thermal_Status(onlp_thermal_info_t* info, int tid)
 {
-    int rv = 0, data = 0x0/*, val_1 = 0x0, val_2 = 0x0*/;
+    int rv = 0, data = 0x0;
     uint8_t psu_addr;
     uint8_t channel;
     uint8_t offset;
@@ -200,32 +200,32 @@ Get_Power_Thermal_Status(onlp_thermal_info_t* info, int tid)
     case THERMAL_ID_ON_PSUA_1:
         channel = FM_6609_BN_FF_I2C_MUX_CH0;
         psu_addr = FM_6609_BN_FF_PSU_A;
-        offset = 0x8d;	//READ_TEMPERATURE_1 
+        offset = PMBUS_TEMPERATUR1_REG;
         break;
     case THERMAL_ID_ON_PSUA_2:
         channel = FM_6609_BN_FF_I2C_MUX_CH0;
         psu_addr = FM_6609_BN_FF_PSU_A;
-        offset = 0x8e;	//READ_TEMPERATURE_2
+        offset = PMBUS_TEMPERATUR2_REG;
         break;
     case THERMAL_ID_ON_PSUA_3:
         channel = FM_6609_BN_FF_I2C_MUX_CH0;
         psu_addr = FM_6609_BN_FF_PSU_A;
-        offset = 0x8f;	//READ_TEMPERATURE_3
+        offset = PMBUS_TEMPERATUR3_REG;
         break;
     case THERMAL_ID_ON_PSUB_1:
         channel = FM_6609_BN_FF_I2C_MUX_CH1;
         psu_addr = FM_6609_BN_FF_PSU_B;
-        offset = 0x8d;	//READ_TEMPERATURE_1 
+        offset = PMBUS_TEMPERATUR1_REG;
         break;
     case THERMAL_ID_ON_PSUB_2:
         channel = FM_6609_BN_FF_I2C_MUX_CH1;
         psu_addr = FM_6609_BN_FF_PSU_B;
-        offset = 0x8e;	//READ_TEMPERATURE_2
+        offset = PMBUS_TEMPERATUR2_REG;
         break;
     case THERMAL_ID_ON_PSUB_3:
         channel = FM_6609_BN_FF_I2C_MUX_CH1;
         psu_addr = FM_6609_BN_FF_PSU_B;
-        offset = 0x8f;	//READ_TEMPERATURE_3
+        offset = PMBUS_TEMPERATUR3_REG;
         break;
     default:
         return ONLP_STATUS_E_INVALID;

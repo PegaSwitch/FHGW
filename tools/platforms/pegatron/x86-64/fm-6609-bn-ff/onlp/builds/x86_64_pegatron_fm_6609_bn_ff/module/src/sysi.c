@@ -35,6 +35,10 @@
 
 #define SW_VERSION "0.0.0.1"
 
+uint8_t page_reg = 0xfc;
+uint8_t idt_slave_addr = 0x5b;
+uint8_t page_data[4] = {0, 0, 0x10, 0x20};
+
 /**
  * @brief Return the name of the the platform implementation.
  * @notes This will be called PRIOR to any other calls into the
@@ -206,6 +210,14 @@ int onlp_sysi_platform_manage_fans(void)
     return 0;
 }
 #endif
+static void debug_show(void)
+{
+    printf("\nUsage: onlpdump debug [OPTION]\n");
+    printf("led ctrl_test           : into led control test mode.\n");
+    printf("led finish_test         : Finish led control test mode.\n");
+    printf("idt info                : Show IDT information\n");
+}
+
 static int start_led_manual_mode(int enable)
 {		
 	FILE *fp;
@@ -282,15 +294,145 @@ int onlp_sysi_platform_manage_leds(void)
     return 0;
 }
 
+static void idt_show_hw_revision(void)
+{
+    uint8_t hw_base_addr[2] = {0x81, 0x80};
+    uint8_t hw_rev_reg = 0x7a+hw_base_addr[1];
+    int bus = 14;
+    int rv = 0;
+    uint8_t data = 0; 
+
+    page_data[1] = hw_base_addr[0];
+    rv = onlp_i2c_write(bus, idt_slave_addr, page_reg, 4, page_data, ONLP_I2C_F_FORCE);
+    if(rv < 0)
+        printf("Error for set page register\n");
+
+    rv = onlp_i2c_read(bus, idt_slave_addr, hw_rev_reg, 1, &data, ONLP_I2C_F_FORCE);
+
+    if(rv < 0)        
+        printf("Error for read HW_REV register\n");
+    else
+        printf("IDT hardware revision: %d\n", data);
+}
+
+static void idt_show_product_id(void)
+{
+    uint8_t general_status_addr[2] = {0xc0, 0x14};
+    uint8_t pid_reg = 0x1e + general_status_addr[1];
+    int bus = 14;
+    int rv = 0;
+    uint8_t data[2] = {0}; 
+
+    page_data[1] = general_status_addr[0];
+    rv = onlp_i2c_write(bus, idt_slave_addr, page_reg, 4, page_data, ONLP_I2C_F_FORCE);
+    if(rv < 0)
+        printf("Error for set page register\n");
+
+    rv = onlp_i2c_read(bus, idt_slave_addr, pid_reg, 2, data, ONLP_I2C_F_FORCE);
+
+    if(rv < 0)        
+        printf("Error for read Product Id register\n");
+    else    
+        printf("IDT Product Id: 0x%x\n", (data[1] << 8) | data[0]);
+}
+
+static void idt_show_driver_ver(void)
+{
+    uint8_t general_status_addr[2] = {0xc0, 0x14};
+    uint8_t major_reg = 0x10 + general_status_addr[1];
+    uint8_t minor_reg = 0x11 + general_status_addr[1];
+    uint8_t hotfix_reg = 0x12 + general_status_addr[1];
+    int bus = 14;
+    int rv = 0;
+    uint8_t major=0;
+    uint8_t minor=0;
+    uint8_t hotfix=0;
+
+    page_data[1] = general_status_addr[0];
+    rv = onlp_i2c_write(bus, idt_slave_addr, page_reg, 4, page_data, ONLP_I2C_F_FORCE);
+    if(rv < 0)
+        printf("Error for set page register\n");
+
+    rv = onlp_i2c_read(bus, idt_slave_addr, major_reg, 1, &major, ONLP_I2C_F_FORCE);
+    rv = onlp_i2c_read(bus, idt_slave_addr, minor_reg, 1, &minor, ONLP_I2C_F_FORCE);
+    rv = onlp_i2c_read(bus, idt_slave_addr, hotfix_reg, 1, &hotfix, ONLP_I2C_F_FORCE);
+
+    if(rv < 0)        
+        printf("Error for read driver verion register\n");
+    else    
+        printf("IDT Driver verion: %d.%d.%d\n", (major>>1), minor, hotfix);
+}
+
+static char *idt_show_state(uint8_t state)
+{
+    uint8_t s = 0;
+    char *str_state = "NULL"; 
+    s = (state & 0xf);
+    switch(s) {
+    case 0:
+        str_state = "freerun";
+        break;    
+    case 1: 
+        str_state = "lockacq";
+        break;    
+    case 2: 
+        str_state = "lockrec";
+        break;    
+    case 3: 
+        str_state = "locked";
+        break;    
+    case 4: 
+        str_state = "holdover";
+        break;    
+    case 5: 
+        str_state = "open loop";
+        break;    
+    default:
+        break;    
+    }
+    return str_state;
+}
+
+static void idt_show_pdll_status(void)
+{
+    uint8_t status_addr[2] = {0xc0, 0x3c};
+    uint8_t dpll_reg = 0x18 + status_addr[1];
+    uint8_t dpll_input_reg = 0x22 + status_addr[1];
+    int dpll_cnt = 8;
+    int bus = 14;
+    int rv = 0;
+    int i; 
+    uint8_t data=0; 
+
+    page_data[1] = status_addr[0];
+    rv = onlp_i2c_write(bus, idt_slave_addr, page_reg, 4, page_data, ONLP_I2C_F_FORCE);
+    if(rv < 0)
+        printf("Error for set page register\n");
+    printf("\nDPLLs status:\n");
+    for(i=0; i<dpll_cnt; i++) {
+        rv = onlp_i2c_read(bus, idt_slave_addr, (dpll_reg+i), 1, &data, ONLP_I2C_F_FORCE);
+        if(rv < 0)        
+            printf("Error for read driver verion register\n");
+        else    
+            printf("  DPLL%d_STATUS - %s\n", i, idt_show_state(data));
+    }
+    printf("\nDPLLs input status:\n");
+    for(i=0; i<dpll_cnt; i++) {
+        rv = onlp_i2c_read(bus, idt_slave_addr, (dpll_input_reg+i), 1, &data, ONLP_I2C_F_FORCE);
+        if(rv < 0)        
+            printf("Error for read driver verion register\n");
+        else
+            printf("  DPLL%d_INPUT_STATUS - 0x%x\n", i, data);
+    }
+}
+
 /**
  * @brief Builtin platform debug tool.
  */
 int onlp_sysi_debug(aim_pvs_t* pvs, int argc, char** argv)
 {
-	if(argc == 0) {		
-        printf("\nUsage: onlpdump debug [OPTION]\n");
-        printf("led ctrl_test            : into led control test mode.\n");
-        printf("led finish_test          : Finish led control test mode.\n");
+	if(argc == 0) {
+        debug_show();
 		return 0;
 	} else if(argc == 2) {
 		if(!strcmp(argv[0], "led")) {
@@ -301,10 +443,19 @@ int onlp_sysi_debug(aim_pvs_t* pvs, int argc, char** argv)
 				printf("Finish led control test mode.\n");
 				start_led_manual_mode(0);
 			} else
-				;
-		}
+                debug_show();
+		} else  if(!strcmp(argv[0], "idt")) {
+			if(!strcmp(argv[1], "info")) {
+				idt_show_hw_revision();
+				idt_show_product_id();
+				idt_show_driver_ver();
+                idt_show_pdll_status();
+			} else
+                debug_show();
+		} else
+            debug_show();
 	} else
-		;
+        debug_show();
 	return 0;
 }
 

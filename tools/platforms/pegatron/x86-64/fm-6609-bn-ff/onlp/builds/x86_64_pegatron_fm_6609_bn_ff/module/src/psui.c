@@ -193,7 +193,7 @@ static int onlp_get_tps53679_vout_info(onlp_psu_info_t *p, int bus_no, int addre
 		p->caps |= ONLP_PSU_CAPS_VOUT;
 
 		if(data != 0)
-		   p->mvout = round((0.50 + 0.01 * (data - 1))*10*1000);
+		   p->mvout = round((0.50 + 0.01 * (data - 1))*1000);
 	}
 	return 0;
 }
@@ -263,7 +263,7 @@ static int onlp_get_pmbus_mfr_serial_info(onlp_psu_info_t *p, int bus_no, int ad
 
 static int onlp_pmbus_vrm_info_get(onlp_psu_info_t *p, int bus_no, int address)
 {
-	//switch page to channel A
+	//switch page to share channel A & channel B
 	onlp_i2c_writew(bus_no, address, PMBUS_PAGE_REG, 0x0, ONLP_I2C_F_FORCE);
 
     /* READ VIN */
@@ -272,14 +272,6 @@ static int onlp_pmbus_vrm_info_get(onlp_psu_info_t *p, int bus_no, int address)
     /* READ IIN */
 	onlp_get_pmbus_iin_info(p, bus_no, address);
 
-    /* VOUT_MODE */
-	//According to different multiphase (or VRM) chip, raw data calculate method will differnet.
-	onlp_get_tps53679_vout_info(p, bus_no, address);
-
-    /* READ IOUT */
-	/* config phase register */
-	onlp_i2c_writew(bus_no, address, PMBUS_PHASE_REG, 0x80, ONLP_I2C_F_FORCE);
-	onlp_get_pmbus_iout_info(p, bus_no, address);
 
 	//switch page to Simul Ch-A & Ch-B
 	onlp_i2c_writew(bus_no, address, PMBUS_PAGE_REG, 0xff, ONLP_I2C_F_FORCE);
@@ -289,7 +281,20 @@ static int onlp_pmbus_vrm_info_get(onlp_psu_info_t *p, int bus_no, int address)
 
     /* READ PIn */
 	onlp_get_pmbus_pin_info(p, bus_no, address);
-	
+
+
+	//switch page to channel A
+	onlp_i2c_writew(bus_no, address, PMBUS_PAGE_REG, 0x0, ONLP_I2C_F_FORCE);
+
+    /* VOUT_MODE */
+	//According to different multiphase (or VRM) chip, raw data calculate method will differnet.
+	onlp_get_tps53679_vout_info(p, bus_no, address);
+
+    /* READ IOUT */
+	/* config phase register to Simul Phase */
+	onlp_i2c_writew(bus_no, address, PMBUS_PHASE_REG, 0xFF, ONLP_I2C_F_FORCE);
+	onlp_get_pmbus_iout_info(p, bus_no, address);
+
     /* READ mfr_model  */
     strcpy(p->model, "Missing");
 	
@@ -298,29 +303,20 @@ static int onlp_pmbus_vrm_info_get(onlp_psu_info_t *p, int bus_no, int address)
 	return 0;
 }
 
-
 //TPS53679 (NPU 0x64)
 static int onlp_pmbus_vrm3_info_get(onlp_psu_info_t *p)
 {
 	int bus_no = FM_6609_BN_FF_I2C_BUS1;
 	int address = FM_6609_BN_FF_VRM_3;
 	
-	//switch page to channel B
-	onlp_i2c_writew(bus_no, address, PMBUS_PAGE_REG, 0x1, ONLP_I2C_F_FORCE);
+	//switch page to share channel A & channel B
+	onlp_i2c_writew(bus_no, address, PMBUS_PAGE_REG, 0x0, ONLP_I2C_F_FORCE);
 
     /* READ VIN */
 	onlp_get_pmbus_vin_info(p, bus_no, address);
 
     /* READ IIN */
 	onlp_get_pmbus_iin_info(p, bus_no, address);
-
-    /* VOUT_MODE */
-	onlp_get_tps53679_vout_info(p, bus_no, address);
-
-    /* READ IOUT */
-	/* config phase register */
-	onlp_i2c_writew(bus_no, address, PMBUS_PHASE_REG, 0x80, ONLP_I2C_F_FORCE);	
-	onlp_get_pmbus_iout_info(p, bus_no, address);
 
 	//switch page to Simul Ch-A & Ch-B
 	onlp_i2c_writew(bus_no, address, PMBUS_PAGE_REG, 0xff, ONLP_I2C_F_FORCE);
@@ -331,6 +327,17 @@ static int onlp_pmbus_vrm3_info_get(onlp_psu_info_t *p)
     /* READ PIn */
 	onlp_get_pmbus_pin_info(p, bus_no, address);
 	
+	//switch page to channel B
+	onlp_i2c_writew(bus_no, address, PMBUS_PAGE_REG, 0x1, ONLP_I2C_F_FORCE);
+
+    /* VOUT_MODE */
+	onlp_get_tps53679_vout_info(p, bus_no, address);
+
+    /* READ IOUT */
+	/* config phase register to Simul Phase */
+	onlp_i2c_writew(bus_no, address, PMBUS_PHASE_REG, 0xFF, ONLP_I2C_F_FORCE);	
+	onlp_get_pmbus_iout_info(p, bus_no, address);
+
     /* READ mfr_model  */
     strcpy(p->model, "Missing");
 	

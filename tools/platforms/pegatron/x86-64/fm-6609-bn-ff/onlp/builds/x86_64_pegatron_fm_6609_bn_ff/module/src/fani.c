@@ -211,12 +211,12 @@ onlp_fani_info_get(onlp_oid_t id, onlp_fan_info_t *info)
     int rv = 0;
 
     switch(fid) {
-        case FAN_ID_FANA_OUTLET:
-        case FAN_ID_FANA_INLET:
-        case FAN_ID_FANB_OUTLET:
-        case FAN_ID_FANB_INLET:
-        case FAN_ID_FANC_OUTLET:
-        case FAN_ID_FANC_INLET:
+    case FAN_ID_FANA_OUTLET:
+    case FAN_ID_FANA_INLET:
+    case FAN_ID_FANB_OUTLET:
+    case FAN_ID_FANB_INLET:
+    case FAN_ID_FANC_OUTLET:
+    case FAN_ID_FANC_INLET:
         f = &fan_info[fid];
         rv = Get_Sys_FAN_Status(f, fid);
         /* Sync local info to incoming pointer */

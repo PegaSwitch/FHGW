@@ -99,7 +99,7 @@ onlp_sfpi_init(void)
     }
     for(port = (NUM_OF_SFP_PORT+1); port <= (NUM_OF_SFP_PORT+NUM_OF_QSFP_PORT); port++) {
 		//QSFP module needs to setting reset register. 
-		onlp_sfpi_control_set(port, ONLP_SFP_CONTROL_RESET, 0);
+		onlp_sfpi_control_set(port, ONLP_SFP_CONTROL_RESET, 1);
     }
     return ONLP_STATUS_OK;
 }
