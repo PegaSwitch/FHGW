@@ -1,15 +1,13 @@
 variables:
   ARCH: amd64
-  BASENAME: closed-x86-64-pegatron-fm-6609-bn-ff
+  BASENAME: closed-fhgw-x86-64-pegatron-fm-6609-bn-ff
   VENDOR: pegatron
   KERNELS: onl-kernel-4.19-lts-x86-64-all:amd64
-  model: closed-fhgw-x86-64-pegatron-fm-6609-bn-ff
   
 prerequisites:
   packages:
     - $KERNELS
     - onl-vendor-${VENDOR}-modules:$ARCH
-    - onl-platform-modules-$model:$ARCH
 
 packages:
   - name: onl-platform-modules-${BASENAME}
