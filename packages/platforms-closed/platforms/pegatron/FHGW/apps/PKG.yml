@@ -4,11 +4,10 @@ variables:
 
 prerequisites:
   packages:
-    - onl-platform-modules-closed-$basename:$arch
-    - onl-platform-fhgw-apps-$basename:$arch
+    - onl-platform-modules-closed-fhgw-$basename:$arch
 
 packages:
-  - name: onl-platform-apps-$basename
+  - name: onl-platform-fhgw-apps-$basename
     version: 0.1.0
     arch: $arch
     copyright: Copyright 2013, 2014, 2015 Big Switch Networks
@@ -18,7 +17,7 @@ packages:
 
     files:
       - builds/fhgw_fpga_dr_test_app: /root/
-      - builds/fhgw_fpga_app: /root/
-      - builds/fhgw_fpga_startup.sh: /root/
+      - src/prebuild/fhgw_fpga_app: /root/
+      - src/script/fhgw_fpga_startup.sh: /root/
 
     changelog: Changes

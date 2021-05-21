@@ -645,3 +645,17 @@ int8_t fhgw_led_ctrl(uint8_t ledno, uint8_t led_ctrl)
         return FHGW_FPGA_REG_WRITE(FPGA_SYSTEM_REGISTER_BLOCK, 0, FPGA_LED_CONTROL_USER, led_ctrl << (ledno * 0x2));
     }
 }
+
+int8_t fpga_mm_dump(uint8_t channelno, struct fpga_address *dr_mm_table)
+{	
+    ioctl_arg_t params;
+
+    params.dr_params.channel_no = channelno;
+
+    if(ioctl(fd, FHGW_FPGA_MM_DUMP, &params) < 0) {
+        printf("Error in ioctl set\n");
+        return FPGA_RET_FAILED;
+    }
+    memcpy(dr_mm_table, &params.dr_mm_table, sizeof(struct fpga_address));
+    return FPGA_RET_SUCCESS;
+}

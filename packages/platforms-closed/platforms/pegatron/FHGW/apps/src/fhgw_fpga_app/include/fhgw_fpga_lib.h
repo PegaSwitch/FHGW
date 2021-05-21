@@ -294,6 +294,13 @@ typedef enum {
 		FPGA_VALIDATE_LED,
 } validate;
 
+struct fpga_address {
+    uint32_t eth_base_addr;
+    uint32_t xcvr_base_addr;
+    uint32_t rsfec_base_addr;
+    uint32_t cprisoft_base_addr;
+};
+
 int32_t fpga_dev_open();
 void fpga_dev_close();
 
@@ -345,5 +352,6 @@ int8_t fpga_dr_init();
 int8_t fpga_enable_ILB_without_calibration(uint8_t channelno);
 int8_t fpga_enable_ILB_with_calibration(uint8_t channelno);
 int8_t fpga_enable_ELB_with_calibration(uint8_t channelno);
+int8_t fpga_mm_dump(uint8_t channelno, struct fpga_address *dr_mm_table);
 
 #endif
