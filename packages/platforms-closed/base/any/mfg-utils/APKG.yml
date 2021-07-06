@@ -9,7 +9,7 @@ prerequisites:
 
 packages:
   - name: mfg-utils
-    version: 0.1.0
+    version: 0.0.5
     arch: $ARCH
     copyright: Copyright 2013, 2014, 2015 Big Switch Networks
     maintainer: support@bigswitch.com

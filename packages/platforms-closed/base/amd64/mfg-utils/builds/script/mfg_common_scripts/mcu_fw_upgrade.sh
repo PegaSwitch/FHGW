@@ -821,6 +821,12 @@ else
                 swallow_empty_line=$( { ipmitool raw $BMC_NET_FUNCTION $BMC_SENSOR_MONITOR_REG $BMC_SENSOR_DISABLE ; } 2>&1 )    # disable BMC sensor monitor to prevent job was paused or interfered in.
             fi
 
+            if [[ "$PROJECT_NAME" == "FHGW" ]]; then    # switch UART path from GPS to MCU
+                read_mcr2_value=$( { Read_I2C_Device_Node $I2C_BUS_CPLD $CPLD_MCR2_CONTROL $CPLD_MCR2_REG ; } 2>&1 )
+                set_new_mcr2_value=$(( $read_mcr2_value & ( ~ $CPLD_MCR2_UART_SEL_BIT ) ))
+                Write_I2C_Device_Node $I2C_BUS_CPLD $CPLD_MCR2_CONTROL $CPLD_MCR2_REG $set_new_mcr2_value
+            fi
+
             if [[ "$upgrade_method_sel" == "sw" ]]; then
                 ## Check Main Board MCU(0x70) on I2C bus or not.
                 I2C_Device_Detect $I2C_BUS_MCU $MB_MCU_ADDR
@@ -833,8 +839,13 @@ else
                     Error_Message_Handler $ERR_MSG_DEVICE_NOT_DETECT "mcu"
                     Upgrade_Through_HW_Method
                 fi
+
             elif [[ "$upgrade_method_sel" == "hw" ]]; then
                 Upgrade_Through_HW_Method
+            fi
+
+            if [[ "$PROJECT_NAME" == "FHGW" ]]; then    # restore UART path to GPS
+                Write_I2C_Device_Node $I2C_BUS_CPLD $CPLD_MCR2_CONTROL $CPLD_MCR2_REG $read_mcr2_value
             fi
 
             if [[ "$board_type" == "fb" ]]; then

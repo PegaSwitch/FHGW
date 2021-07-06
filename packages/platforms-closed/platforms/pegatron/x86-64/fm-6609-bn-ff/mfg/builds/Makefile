@@ -17,19 +17,19 @@ all:
 	done
 	if [ ! -d $(ONL_DEBIAN_SUITE)/$(CPLD_FW_ROOT) ]; then \
 		mkdir -p $(ONL_DEBIAN_SUITE)/$(CPLD_FW_ROOT); \
-		cp $(FIRMWARE_BASE_DIR)/cpld/* $(ONL_DEBIAN_SUITE)/$(CPLD_FW_ROOT); \
 	fi
+	cp $(FIRMWARE_BASE_DIR)/cpld/* $(ONL_DEBIAN_SUITE)/$(CPLD_FW_ROOT);
 	if [ ! -d $(ONL_DEBIAN_SUITE)/$(MCU_FW_ROOT) ]; then \
 		mkdir -p $(ONL_DEBIAN_SUITE)/$(MCU_FW_ROOT); \
-		cp $(FIRMWARE_BASE_DIR)/mcu/* $(ONL_DEBIAN_SUITE)/$(MCU_FW_ROOT); \
 	fi
+	cp $(FIRMWARE_BASE_DIR)/mcu/* $(ONL_DEBIAN_SUITE)/$(MCU_FW_ROOT);
 	if [ ! -d $(ONL_DEBIAN_SUITE)/$(BIOS_FW_ROOT) ]; then \
 		mkdir -p $(ONL_DEBIAN_SUITE)/$(BIOS_FW_ROOT); \
-		cp $(FIRMWARE_BASE_DIR)/bios/* $(ONL_DEBIAN_SUITE)/$(BIOS_FW_ROOT); \
 	fi
+	cp $(FIRMWARE_BASE_DIR)/bios/* $(ONL_DEBIAN_SUITE)/$(BIOS_FW_ROOT);
 	if [ ! -d $(ONL_DEBIAN_SUITE)/$(INTEL_NVM_FW_ROOT) ]; then \
 		mkdir -p $(ONL_DEBIAN_SUITE)/$(INTEL_NVM_FW_ROOT); \
-		cp $(FIRMWARE_BASE_DIR)/intel_nvm/* $(ONL_DEBIAN_SUITE)/$(INTEL_NVM_FW_ROOT); \
 	fi
+	cp $(FIRMWARE_BASE_DIR)/intel_nvm/* $(ONL_DEBIAN_SUITE)/$(INTEL_NVM_FW_ROOT);
 
 

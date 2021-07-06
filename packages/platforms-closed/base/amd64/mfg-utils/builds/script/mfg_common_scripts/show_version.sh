@@ -297,7 +297,7 @@ function Get_SDK_FW_Version()
         echo "  MFG: Gemini v0.1.6_TEST"
         echo "  SDK: Marvell CPSS 4.2.2020.3"
     elif [[ "$PROJECT_NAME" == "FHGW" ]]; then
-        echo "  MFG: FHGW v0.0.2"
+        echo "  MFG: FHGW v0.0.5"
         echo "  SDK: Marvell CPSS 4.2.2020.9"
     fi
 }
