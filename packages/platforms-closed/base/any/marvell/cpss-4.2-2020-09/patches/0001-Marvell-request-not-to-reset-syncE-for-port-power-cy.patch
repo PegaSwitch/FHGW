@@ -1,0 +1,25 @@
+From c051069f3a228904b7cbe67846e0bf99b77fef56 Mon Sep 17 00:00:00 2001
+From: JennyLien <jenny_lien@pegatroncorp.com>
+Date: Thu, 10 Jun 2021 14:42:58 +0800
+Subject: [PATCH] Marvell request not to reset syncE for port power cycle
+
+---
+ .../gop/src/port/serdes/avago/aapl/marvell/mv_hws_avago_serdes_if.c     | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/common/src/cpss/common/labServices/port/gop/src/port/serdes/avago/aapl/marvell/mv_hws_avago_serdes_if.c b/common/src/cpss/common/labServices/port/gop/src/port/serdes/avago/aapl/marvell/mv_hws_avago_serdes_if.c
+index 3779738..98e6541 100644
+--- a/common/src/cpss/common/labServices/port/gop/src/port/serdes/avago/aapl/marvell/mv_hws_avago_serdes_if.c
++++ b/common/src/cpss/common/labServices/port/gop/src/port/serdes/avago/aapl/marvell/mv_hws_avago_serdes_if.c
+@@ -4236,7 +4236,7 @@ GT_STATUS mvHwsAvagoSerdesResetImpl
+     else /* SERDES SYNCE UNRESET init */
+     {
+         CHECK_STATUS(hwsSerdesRegSetFuncPtr(devNum, portGroup, EXTERNAL_REG, serdesNum, SERDES_EXTERNAL_CONFIGURATION_0, (1 << 6), (1 << 6)));
+-        CHECK_STATUS(hwsSerdesRegSetFuncPtr(devNum, portGroup, EXTERNAL_REG, serdesNum, SERDES_EXTERNAL_CONFIGURATION_1, 0xDD00, 0xFF00));
++        /* CHECK_STATUS(hwsSerdesRegSetFuncPtr(devNum, portGroup, EXTERNAL_REG, serdesNum, SERDES_EXTERNAL_CONFIGURATION_1, 0xDD00, 0xFF00)); */   /* PEGA 20210610 : Marvell request to mark off */
+     }
+ 
+     return GT_OK;
+-- 
+2.7.4
+

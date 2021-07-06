@@ -1,0 +1,62 @@
+From 5af344dd1e30be63d58b3fa642d2ff5f639524c0 Mon Sep 17 00:00:00 2001
+From: JennyLien <jenny_lien@pegatroncorp.com>
+Date: Thu, 6 May 2021 09:50:18 +0800
+Subject: [PATCH] Fine tune internal 10G-KR port
+
+---
+ .../src/appDemo/entryPoints/linux/mfg_fhgw.c           | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+index 2697ba7..f357bff 100644
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+@@ -68,6 +68,7 @@
+ #define PORT_ACTION_DELAY 30000      /* ms */
+ #define ACTION_DELAY      150000     /* ms */
+ 
++int INTERNAL_10GKR_PORT = 47;
+ int SFP_MAC_PORTS[SFP_AMOUNT] = {0, 12, 13, 14, 15, 16, 17, 18, 19};
+ int QSFP_PORTS_FANOUT[4] = {4, 5, 6, 7};
+ int flag_qsfp_fan_out, flag_qsfp_fan_out_50g = 0;
+@@ -886,6 +887,14 @@ GT_STATUS Set_Port_Tx(int portNum, IN GT_U8 interface_select)
+         Set_Port_Tx(portNum, 1);
+         return GT_OK;
+     }
++    else if (interface_select == 5)    /* 10G-KR of port#47 */
++    {
++        serdesTxCfg.txTune.avago.atten = 0;
++        serdesTxCfg.txTune.avago.post = 15;
++        serdesTxCfg.txTune.avago.pre = 4;
++        serdesTxCfg.txTune.avago.pre2 = 0;
++        serdesTxCfg.txTune.avago.pre3 = 0;
++    }
+     else
+     {
+         printf(" [MFG] Invalid type choose ! exit ... \n");
+@@ -1001,6 +1010,12 @@ void Do_Port_Tx_Setting(int portNum, int speed, int cable_interface)
+     }
+ }
+ 
++void Init_10GKR_Interface(void)
++{
++    Set_Port_Tx(INTERNAL_10GKR_PORT, 5);    /* Set Tx preemphasis value from EE */
++    Port_RX_Training(INTERNAL_10GKR_PORT);
++}
++
+ /** Both for PortMgr / Legacy Mode : */
+ void Clear_Port_Speed(int portNum)
+ {
+@@ -2713,6 +2728,9 @@ GT_STATUS Pre_Config_Check_And_Set(void)
+         if (vlan_mode != 0)
+             Vlan_Mode_Set(vlan_mode);
+ 
++        /* Init 10G-KR interface between CPU */
++        Init_10GKR_Interface();
++
+         return GT_OK;
+     }
+     else    /* Skip auto initialize, need user manual input commands */
+-- 
+2.7.4
+

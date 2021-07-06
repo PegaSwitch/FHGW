@@ -6,3 +6,8 @@
 0002-Correct-SFP-default-speed-setting.patch
 0003-Support-Legacy-mode-control-scrips.patch
 0001-Correct-SFP-port-LED-defaut-setting.patch
+0001-1.-Support-auto-initialized-with-portMgr-legacy-mode.patch
+0001-1.-Fix-speed-changed-issue-and-also-implement-Tx-pre.patch
+0001-Support-MAC-register-test-for-EDVT-required-stress-t.patch
+0001-Fine-tune-internal-10G-KR-port.patch
+0001-Marvell-request-not-to-reset-syncE-for-port-power-cy.patch

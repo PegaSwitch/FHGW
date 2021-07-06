@@ -1,0 +1,136 @@
+From ab09e23bdaa03f31527997e110fc89a9d8aa763a Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Thu, 22 Apr 2021 18:15:59 +0800
+Subject: [PATCH] Support MAC register test for EDVT required stress test
+
+---
+ .../src/appDemo/entryPoints/linux/mfg_fhgw.c       | 88 +++++++++++++++++++++-
+ 1 file changed, 84 insertions(+), 4 deletions(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+index 8c758c4..2697ba7 100755
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+@@ -211,6 +211,8 @@ static GT_U32 buffLenList[1]={64};  /* packet length = 64 . (1522) */
+ #define STRESS_PKT_SIZE       1500 /* 64 */
+ #define LOG_PCIE_STRESS_TIME  "/tmp/streeTest_Packet_CPU_time"
+ #define DATE_PCIE_TRAFFIC     "date +'%Y/%m/%d %T.%N'"
++#define FILE_MAC_STRESS       "/root/testLog/MAC/mac_stress.log"    /* path depends on Linux archechture */
++#define MAC_REGISTER_WRITE_DATA_ARRAY 4
+ 
+ /* An ARP Request packet :
+  *  // header
+@@ -256,10 +258,10 @@ GT_STATUS MFG_Stress_Test_Rx
+     if ( pktOrder == 1 )
+     {
+         memset(cmd_buf, 0, sizeof(cmd_buf));
+-        sprintf(cmd_buf, "echo \"  # ReceivePacketFromCPU Start time:\" |& tee -a %s", LOG_PCIE_STRESS_TIME);
++        sprintf(cmd_buf, "echo \"  # ReceivePacketFromCPU Start time:\" | tee -a %s", LOG_PCIE_STRESS_TIME);
+         rv_s = system(cmd_buf);
+         memset(cmd_buf, 0, sizeof(cmd_buf));
+-        sprintf(cmd_buf, "%s |& tee -a %s", DATE_PCIE_TRAFFIC, LOG_PCIE_STRESS_TIME);
++        sprintf(cmd_buf, "%s | tee -a %s", DATE_PCIE_TRAFFIC, LOG_PCIE_STRESS_TIME);
+         rv_s = system(cmd_buf);
+     }
+ 
+@@ -301,10 +303,10 @@ GT_STATUS MFG_Stress_Test_Rx
+     if ((stressGoodCnt + stressErrCnt == stressPktNumSent) || ((stressPktNumSent == 0) && (stressGoodCnt + stressErrCnt == stressPktNumSent_perPort)))
+     {
+         memset(cmd_buf, 0, sizeof(cmd_buf));
+-        sprintf(cmd_buf, "echo \"  # ReceivePacketFromCPU End time:\" |& tee -a %s", LOG_PCIE_STRESS_TIME);
++        sprintf(cmd_buf, "echo \"  # ReceivePacketFromCPU End time:\" | tee -a %s", LOG_PCIE_STRESS_TIME);
+         rv_s = system(cmd_buf);
+         memset(cmd_buf, 0, sizeof(cmd_buf));
+-        sprintf(cmd_buf, "%s |& tee -a %s", DATE_PCIE_TRAFFIC, LOG_PCIE_STRESS_TIME);
++        sprintf(cmd_buf, "%s | tee -a %s", DATE_PCIE_TRAFFIC, LOG_PCIE_STRESS_TIME);
+         rv_s = system(cmd_buf);
+ 
+         printf (" @ [debug] stressPktNumSent_perPort = %d , stressPktNumSent = %d \n", stressPktNumSent_perPort, stressPktNumSent);
+@@ -485,6 +487,84 @@ GT_STATUS MFG_Stress_Test_Tx(int portNum, GT_U32 packetNum)
+ }
+ 
+ /********************* Common or MFG needed function : *********************/
++void EDVT_MAC_Loading_Test (int test_round)    /* By access register through PCIe interface */
++{
++    /* MPLS EtherTypes Register, default value = 0x88488847. [31:16] is upstream assigned labels ; [15:0] is downstream assigned labels. */
++    GT_U32 access_register = 0x01000030;
++    GT_U32 read_data = 0x0;
++    GT_U32 write_val_array [MAC_REGISTER_WRITE_DATA_ARRAY] = {0x88478847, 0x88488848, 0x88478848, 0x88488847};
++    int do_round, index, fail_count = 0;
++    GT_STATUS rc;
++
++    /* Delete old log file if existance */
++    fd = fopen(FILE_MAC_STRESS, "r+");
++    if( fd != NULL )
++    {
++        fclose(fd);
++        memset(cmd_buf, 0, sizeof(cmd_buf));
++        snprintf(cmd_buf, sizeof(cmd_buf), "rm %s", FILE_MAC_STRESS);
++        rv_s = system(cmd_buf);
++    }
++
++    printf("    #####  Pegatron PCIe Test #####  Start  ##\n");
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "%s | tee -a %s", DATE_PCIE_TRAFFIC, FILE_MAC_STRESS);
++    rv_s = system(cmd_buf);
++
++    for ( do_round = 1 ; do_round <= test_round ; do_round++ )
++    {
++        printf("    ###  Round %d  ###\n", do_round);
++        for ( index = 0 ; index < MAC_REGISTER_WRITE_DATA_ARRAY ; index++ )
++        {
++            /** write value **/
++            rc = cpssDrvPpHwRegisterWrite(DEVNUM, /* portGroupId */ 0, access_register, write_val_array[index]);
++            if (rc != GT_OK)
++            {
++                printf(" # Write register Fail, rc = %d\n\n", rc);
++            }
++
++            /** read value and check **/
++            rc = cpssDrvPpHwRegisterRead(DEVNUM, /* portGroupId */ 0, access_register, &read_data);
++            if (rc != GT_OK)
++            {
++                printf(" # Read register Fail, rc = %d\n\n", rc);
++            }
++            if ( read_data != write_val_array[index] )
++            {
++                printf(" # Register 0x%0x - write 0x%x but read 0x%x, in index %d of round %d\n\n", access_register, write_val_array[index], read_data, index, do_round);
++
++                memset(cmd_buf, 0, sizeof(cmd_buf));
++                sprintf(cmd_buf, "echo \" # write 0x%x but read 0x%x, in index %d of round %d\" >> %s", write_val_array[index], read_data, index, do_round, FILE_MAC_STRESS);
++                rv_s = system(cmd_buf);
++
++                fail_count++;
++            }
++
++            usleep(ACTION_DELAY);
++        }
++        usleep(500000);
++    }
++
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    sprintf(cmd_buf, "%s | tee -a %s", DATE_PCIE_TRAFFIC, FILE_MAC_STRESS);
++    rv_s = system(cmd_buf);
++
++    printf("    #####  Pegatron PCIe Test #####  End  ##\n");
++
++    memset(cmd_buf, 0, sizeof(cmd_buf));
++    if ( fail_count != 0 )
++    {
++        printf("\n ==> MAC Loading Test is Fail\n\n");
++        sprintf(cmd_buf, "echo \"\n ==> MAC Loading Test is Fail (%d times)\n\" >> %s", fail_count, FILE_MAC_STRESS);
++    }
++    else
++    {
++        printf("\n ==> MAC Loading Test is Pass \n\n");
++        sprintf(cmd_buf, "echo \"\n ==> MAC Loading Test is Pass\n\" >> %s", FILE_MAC_STRESS);
++    }
++    rv_s = system(cmd_buf);
++}
++
+ int Get_MAC_Temperature (void)
+ {
+     GT_32     temperature = 0;
+-- 
+2.7.4
+

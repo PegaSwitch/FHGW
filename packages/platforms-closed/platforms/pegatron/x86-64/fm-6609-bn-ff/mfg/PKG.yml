@@ -26,7 +26,7 @@ packages:
       - src/setup.sh: /root/setup_fhgw.sh
 
   - name: onl-platform-sdk-$basename
-    version: 1.0.0
+    version: 1.0.1
     arch: $arch
     copyright: Copyright 2013, 2014, 2015 Big Switch Networks
     maintainer: support@bigswitch.com

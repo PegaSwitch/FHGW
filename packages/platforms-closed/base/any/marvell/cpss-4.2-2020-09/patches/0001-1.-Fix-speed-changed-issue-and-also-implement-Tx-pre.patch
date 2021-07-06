@@ -1,0 +1,633 @@
+From b99f9b37bf5bc024db990d2ed904d80081457073 Mon Sep 17 00:00:00 2001
+From: Jenny Lien <Jenny_Lien@pegatroncorp.com>
+Date: Fri, 9 Apr 2021 16:46:06 +0800
+Subject: [PATCH] 1. Fix speed changed issue, and also implement Tx preemphasis
+ in legacy mode. 2. Change portMgr flag checking mechnism - calling internal
+ API instead of MFG customized reading file.
+
+---
+ .../src/appDemo/entryPoints/linux/mfg_fhgw.c       | 417 +++++++++++++++------
+ 1 file changed, 305 insertions(+), 112 deletions(-)
+
+diff --git a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+index d117e07..8c758c4 100755
+--- a/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
++++ b/cpssEnabler/mainSysConfig/src/appDemo/entryPoints/linux/mfg_fhgw.c
+@@ -82,6 +82,11 @@ int flag_qsfp_fan_out, flag_qsfp_fan_out_50g = 0;
+    50 =  50G
+   100 = 100G
+ 
++    cable interface ::
++    1 = CR4
++    2 = CAUI-4
++    3 = 10/40G
++
+     FEC >>
+     0 = disable
+     1 = FC-FEC   * for 25G
+@@ -130,7 +135,6 @@ enum{
+     APPDEMO_MODE_PORTMGR,
+ };
+ 
+-#define APPDEMO_MODE_NOTE   "/tmp/tmp_appdemo_note"
+ #define FILE_NORMAL_PARAM   "/root/mfg/sdk_configuration"
+ char buf[32];
+ FILE * fd;
+@@ -144,6 +148,9 @@ CPSS_PORT_MANAGER_STC        portEventStc;
+ CPSS_PORT_SPEED_ENT portSpeed;
+ CPSS_PORTS_BMP_STC portsBmp;
+ 
++/* port manager boolean variable */
++extern GT_BOOL portMgr;
++
+ /********************* for Counter function usage : ********/
+ #define MAX_DEVICE_NUM 1
+ #define COUNTER_PKT_LENGTH_FOR_PER_PORT 64
+@@ -490,35 +497,26 @@ int Get_MAC_Temperature (void)
+ 
+ int Read_AppDemo_Mode_Note (void)
+ {
+-    int base = 10;
+-    char *endptr;
++    /* to read SDK internal 'portMgr' flag was setting or not */
++    GT_U32                      tmpData;
+ 
+-    memset(buf, 0x0, sizeof(buf));
+-    if ( (fd = fopen(APPDEMO_MODE_NOTE, "r") ) == NULL)
++    if (appDemoDbEntryGet("portMgr", &tmpData) != GT_OK)
+     {
+-        /* perror("Cannot open file"); */
+-        return 0;
++        portMgr = GT_FALSE;
+     }
+     else
+     {
+-        while (fscanf(fd, "%s", buf) != EOF)
+-        {
+-            APPDEMO_MODE = strtol(buf, &endptr, base);
+-            /*printf(" ##### debug ##### APPDEMO_MODE = %d\n", APPDEMO_MODE);*/
+-        }
+-        fclose(fd);
++        portMgr = (tmpData == 1) ? GT_TRUE : GT_FALSE;
+     }
+ 
+-    return 0;
+-}
++    if (portMgr)
++        APPDEMO_MODE = APPDEMO_MODE_PORTMGR;
++    else
++        APPDEMO_MODE = APPDEMO_MODE_LEGACY;
+ 
+-void Write_AppDemo_Mode (void)
+-{
+-    fd = fopen(APPDEMO_MODE_NOTE, "w+");
+-    memset(buf, 0x0, sizeof(buf));
+-    snprintf(buf, sizeof(buf), "%d\n", APPDEMO_MODE);
+-    fprintf(fd, buf);
+-    fclose(fd);
++    /*printf(" ##### debug ##### APPDEMO_MODE = %d\n", APPDEMO_MODE);*/
++
++    return 0;
+ }
+ 
+ GT_STATUS Port_Status_Show (int PortNum)
+@@ -621,7 +619,7 @@ void Check_QSFP_Origin_Serdes_Setting(void)
+     else
+     {
+         cpssDxChPortSpeedGet(DEVNUM, QSFP_PORTS_FANOUT[0], &portSpeed);
+-        if ( portSpeed == CPSS_PORT_SPEED_100G_E )
++        if ( portSpeed == CPSS_PORT_SPEED_100G_E || portSpeed == CPSS_PORT_SPEED_40000_E )
+         {
+             flag_qsfp_fan_out = 0;
+         }
+@@ -641,17 +639,26 @@ void Check_QSFP_Origin_Serdes_Setting(void)
+     }
+ }
+ 
+-/** Start - Only For PortMgr Mode : */
+ GT_STATUS Get_Port_Status(int portNum)
+ {
+     int rv = 0;
+ 
+-    rv = cpssDxChPortManagerStatusGet(DEVNUM, portNum, &portMgrData);
+-    /* printf(" # debug # port %d :: interface = %d , speed = %d , FEC = %d , status = %d\n", portNum, portMgrData.ifMode, portMgrData.speed, portMgrData.fecType, portMgrData.portState); */
++    if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
++    {
++        rv = cpssDxChPortManagerStatusGet(DEVNUM, portNum, &portMgrData);
++        /* printf(" # debug # port %d :: interface = %d , speed = %d , FEC = %d , status = %d\n", portNum, portMgrData.ifMode, portMgrData.speed, portMgrData.fecType, portMgrData.portState); */
++    }
++    else
++    {
++        rv = cpssDxChPortSpeedGet(DEVNUM, portNum, &portSpeed);
++        if (rv)
++            printf(" [MFG] Error occure during getting Port %d\n", portNum);
++    }
+ 
+     return rv;
+ }
+ 
++/** Start - Only For PortMgr Mode : */
+ GT_STATUS PortMgr_State_Set(int portNum, CPSS_PORT_MANAGER_STATE_ENT state)
+ {
+     GT_STATUS                    result = GT_OK;
+@@ -707,9 +714,9 @@ GT_STATUS Port_RX_Training(int portNum)
+     }
+     else
+     {
++        Check_QSFP_Origin_Serdes_Setting();
+         if ( portNum == QSFP_PORTS_FANOUT[0] )    /* QSFP */
+         {
+-            Check_QSFP_Origin_Serdes_Setting();
+             if ( flag_qsfp_fan_out == 0 )
+             {
+                 ret = cpssDxChPortSerdesAutoTune(DEVNUM, QSFP_PORTS_FANOUT[0], CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
+@@ -722,9 +729,9 @@ GT_STATUS Port_RX_Training(int portNum)
+                 {
+                     for (index = QSFP_PORTS_FANOUT[0] ; index <= QSFP_PORTS_FANOUT[3] ; index += 2)
+                     {
+-                        ret = cpssDxChPortSerdesAutoTune(DEVNUM, index, CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
++                        ret = cpssDxChPortSerdesEnhancedAutoTune(DEVNUM, index, 0, 15);  /* min_LF , max_LF */
+                         if (ret != GT_OK)
+-                            printf(" [MFG] Error occure during Port %d RX Training\n", index);
++                            printf(" [MFG] Error occure during Port %d RX Training, ret = %d\n", index, ret);
+                     }
+                 }
+                 else
+@@ -738,6 +745,12 @@ GT_STATUS Port_RX_Training(int portNum)
+                 }
+             }
+         }
++        else if ( portNum == QSFP_PORTS_FANOUT[2] && flag_qsfp_fan_out_50g == 1 )
++        {
++            ret = cpssDxChPortSerdesEnhancedAutoTune(DEVNUM, portNum, 0, 15);  /* min_LF , max_LF */
++            if (ret != GT_OK)
++                printf(" [MFG] Error occure during Port %d RX Training, ret = %d\n", portNum, ret);
++        }
+         else
+         {
+             ret = cpssDxChPortSerdesAutoTune(DEVNUM, portNum, CPSS_DXCH_PORT_SERDES_AUTO_TUNE_MODE_RX_TRAINING_E);
+@@ -749,7 +762,210 @@ GT_STATUS Port_RX_Training(int portNum)
+     return GT_OK;
+ }
+ 
++GT_STATUS Set_Port_Tx(int portNum, IN GT_U8 interface_select)
++{
++    CPSS_PORT_SERDES_TX_CONFIG_STC serdesTxCfg;
++    int p, lane = 0;
++    char config_type[16]={0};
++
++    memset(config_type, 0x0, sizeof(config_type));
++
++    serdesTxCfg.type = CPSS_PORT_SERDES_AVAGO_E;
++
++    /* request type check and decide values */
++    if (interface_select == 1)         /* 25G/100G CR4 */
++    {
++        serdesTxCfg.txTune.avago.atten = 1;
++        serdesTxCfg.txTune.avago.post = 0;
++        serdesTxCfg.txTune.avago.pre = 3;
++        serdesTxCfg.txTune.avago.pre2 = 0;
++        serdesTxCfg.txTune.avago.pre3 = 0;
++        snprintf(config_type, sizeof(config_type), "CR4");
++    }
++    else if (interface_select == 2)    /* 25G/100G CAUI-4 (SR4) */
++    {
++        serdesTxCfg.txTune.avago.atten = 10;
++        serdesTxCfg.txTune.avago.post = 0;
++        serdesTxCfg.txTune.avago.pre = 6;
++        serdesTxCfg.txTune.avago.pre2 = 0;
++        serdesTxCfg.txTune.avago.pre3 = 0;
++        snprintf(config_type, sizeof(config_type), "CAUI4");
++    }
++    else if (interface_select == 3)    /* 10G/40G */
++    {
++        serdesTxCfg.txTune.avago.atten = 12;
++        serdesTxCfg.txTune.avago.post = 6;
++        serdesTxCfg.txTune.avago.pre = 0;
++        serdesTxCfg.txTune.avago.pre2 = 0;
++        serdesTxCfg.txTune.avago.pre3 = 0;
++        snprintf(config_type, sizeof(config_type), "10G/40G");
++    }
++    else if (interface_select == 4)    /* Loopback module */
++    {
++        printf(" [MFG] Current temporary not support lbm ... use DAC parameters instead. \n");
++        Set_Port_Tx(portNum, 1);
++        return GT_OK;
++    }
++    else
++    {
++        printf(" [MFG] Invalid type choose ! exit ... \n");
++        return GT_FAIL;
++    }
++
++    /* Check port's default setting */
++    Read_AppDemo_Mode_Note();
++
++    if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
++    {
++        printf(" [MFG] PortMgr Mode didn't need manually Rx-Auto tuning !\n");
++    }
++    else
++    {
++        if ( portNum == QSFP_PORTS_FANOUT[0] )    /* QSFP */
++        {
++            Check_QSFP_Origin_Serdes_Setting();
++        }
++    }
++
++    /* Setting Tx preemphasis of port */
++    if(portNum == QSFP_PORTS_FANOUT[0])
++    {
++        if(flag_qsfp_fan_out == 0)
++        {
++            for (lane = 0 ; lane <= 3 ; lane += 1)
++            {
++                cpssDxChPortSerdesManualTxConfigSet(DEVNUM, portNum, lane, &serdesTxCfg);
++            }
++        }
++        else
++        {
++            if (flag_qsfp_fan_out_50g == 1)
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
++                {
++                    cpssDxChPortSerdesManualTxConfigSet(DEVNUM, p, lane, &serdesTxCfg);
++                }
++            }
++            else
++            {
++                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 1)
++                {
++                    cpssDxChPortSerdesManualTxConfigSet(DEVNUM, p, lane, &serdesTxCfg);
++                }
++            }
++        }
++    }
++    else
++    {
++        cpssDxChPortSerdesManualTxConfigSet(DEVNUM, portNum, lane, &serdesTxCfg);
++    }
++
++    return GT_OK;
++}
++
++void Do_Port_Tx_Setting(int portNum, int speed, int cable_interface)
++{
++    int p = 0;
++
++    if (portNum == QSFP_PORTS_FANOUT[0])
++    {
++        if (speed == 100 || speed == 40)
++        {
++            if (speed == 40)
++                Set_Port_Tx(portNum, 3);
++            else
++            {
++                if (cable_interface == 2)
++                    Set_Port_Tx(portNum, 2);    /* CAUI4 */
++                else
++                    Set_Port_Tx(portNum, 1);    /* CR4 */
++            }
++        }
++        else if (speed == 50)
++        {
++            for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
++            {
++                if (cable_interface == 2)
++                    Set_Port_Tx(p, 2);    /* CAUI4 */
++                else
++                    Set_Port_Tx(p, 1);    /* CR4 */
++            }
++        }
++        else
++        {
++            for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p++)
++            {
++                if (speed == 10)
++                    Set_Port_Tx(p, 3);
++                else
++                {
++                    if (cable_interface == 2)
++                        Set_Port_Tx(p, 2);    /* CAUI4 */
++                    else
++                        Set_Port_Tx(p, 1);    /* CR4 */
++                }
++            }
++        }
++    }
++    else
++    {
++        if (speed == 10)
++            Set_Port_Tx(portNum, 3);
++        else
++        {
++            if (cable_interface == 1)
++                Set_Port_Tx(portNum, 1);    /* CR4 */
++            else
++                Set_Port_Tx(portNum, 2);    /* CAUI4 */
++        }
++    }
++}
++
+ /** Both for PortMgr / Legacy Mode : */
++void Clear_Port_Speed(int portNum)
++{
++    CPSS_PORT_SPEED_ENT          port_speed = CPSS_PORT_SPEED_NA_E;
++    CPSS_PORT_INTERFACE_MODE_ENT port_if = CPSS_PORT_INTERFACE_MODE_NA_E;
++    int p = 0;
++
++    if(portNum == QSFP_PORTS_FANOUT[0] && flag_qsfp_fan_out == 1)
++    {
++        if (flag_qsfp_fan_out_50g == 1)
++        {
++            for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
++            {
++                if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
++                    PortMgr_State_Set(p, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
++                else
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, p);
++            }
++        }
++        else
++        {
++            for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 1)
++            {
++                if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
++                    PortMgr_State_Set(p, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
++                else
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, p);
++            }
++        }
++    }
++    else
++    {
++        if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
++            PortMgr_State_Set(portNum, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
++        else
++            CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, portNum);
++    }
++
++    if ( APPDEMO_MODE == APPDEMO_MODE_LEGACY )
++    {
++        cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_FALSE, port_if, port_speed);
++        CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsBmp);
++    }
++}
++
+ GT_STATUS Set_Port_FEC(int portNum, int fec_type)    /* once set one port */
+ {
+     /* for APPDEMO_MODE_PORTMGR usage :  */
+@@ -861,7 +1077,7 @@ GT_STATUS Set_Port_FEC(int portNum, int fec_type)    /* once set one port */
+     return GT_OK;
+ }
+ 
+-GT_STATUS Set_Port_Speed(int portNum, int speed)
++GT_STATUS Set_Port_Speed(int portNum, int speed, int cable_interface)
+ {
+     CPSS_PORT_SPEED_ENT          port_speed = CPSS_PORT_SPEED_NA_E;
+     CPSS_PORT_INTERFACE_MODE_ENT port_if = CPSS_PORT_INTERFACE_MODE_NA_E;
+@@ -871,7 +1087,16 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+ 
+     if ( APPDEMO_MODE == APPDEMO_MODE_LEGACY )
+     {
+-        CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsBmp);
++        /* Get port's original speed first, if it equal to original speed, just do TX-Tuning/RX-Training to prevent special case - 50G will cause port#6 non-existance in legacy mode. */
++        Get_Port_Status(portNum);
++        if ( ((portSpeed == CPSS_PORT_SPEED_100G_E) && (speed == 100)) || ((portSpeed == CPSS_PORT_SPEED_40000_E) && (speed == 40)) || ((portSpeed == CPSS_PORT_SPEED_50000_E) && (speed == 50)) || ((portSpeed == CPSS_PORT_SPEED_25000_E) && (speed == 25)) || ((portSpeed == CPSS_PORT_SPEED_10000_E) && (speed == 10)) )
++        {
++            Do_Port_Tx_Setting(portNum, speed, cable_interface);
++            Port_RX_Training(portNum);
++            return GT_OK;
++        }
++        else
++            CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsBmp);
+     }
+     else
+     {
+@@ -900,40 +1125,7 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+     /* Special case : disable the port for user request */
+     if (speed == 0)
+     {
+-        if(portNum == QSFP_PORTS_FANOUT[0] && flag_qsfp_fan_out == 1)
+-        {
+-            if (flag_qsfp_fan_out_50g == 1)
+-            {
+-                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
+-                {
+-                    if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
+-                        PortMgr_State_Set(p, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
+-                    else
+-                        CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, p);
+-                }
+-            }
+-            else
+-            {
+-                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 1)
+-                {
+-                    if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
+-                        PortMgr_State_Set(p, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
+-                    else
+-                        CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, p);
+-                }
+-            }
+-        }
+-        else
+-        {
+-            if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
+-                PortMgr_State_Set(portNum, CPSS_PORT_MANAGER_EVENT_DISABLE_E);
+-            else
+-                CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, portNum);
+-        }
+-
+-        if ( APPDEMO_MODE == APPDEMO_MODE_LEGACY )
+-            cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_FALSE, port_if, port_speed);
+-
++        Clear_Port_Speed(portNum);
+         return GT_OK;
+     }
+ 
+@@ -947,14 +1139,14 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+                 PortMgr_State_Set(QSFP_PORTS_FANOUT[0], CPSS_PORT_MANAGER_EVENT_DELETE_E);
+                 PortMgr_State_Set(QSFP_PORTS_FANOUT[2], CPSS_PORT_MANAGER_EVENT_DELETE_E);
+             }
+-            else if ( (flag_qsfp_fan_out == 1 && ( speed != 10 && speed != 25 )) )      /* or already fan-out (10/25G) but want to set to 40/50/100G, so need to reset all ports */
++            else if ( flag_qsfp_fan_out == 1 )      /* or already fan-out (10/25G) but want to set to 25/10/40/50/100G, so need to reset all ports */
+             {
+                 PortMgr_State_Set(QSFP_PORTS_FANOUT[0], CPSS_PORT_MANAGER_EVENT_DELETE_E);
+                 PortMgr_State_Set(QSFP_PORTS_FANOUT[1], CPSS_PORT_MANAGER_EVENT_DELETE_E);
+                 PortMgr_State_Set(QSFP_PORTS_FANOUT[2], CPSS_PORT_MANAGER_EVENT_DELETE_E);
+                 PortMgr_State_Set(QSFP_PORTS_FANOUT[3], CPSS_PORT_MANAGER_EVENT_DELETE_E);
+             }
+-            else                                                                   /* no fan-out or fan-out but set to 10/25G, so just reset main port#4 */
++            else                                                                   /* no fan-out */
+                 PortMgr_State_Set(portNum, CPSS_PORT_MANAGER_EVENT_DELETE_E);
+         }
+         else
+@@ -1002,13 +1194,10 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+         }
+     };
+ 
+-    if ( APPDEMO_MODE == APPDEMO_MODE_LEGACY )
+-        CPSS_PORTS_BMP_PORT_CLEAR_ALL_MAC(&portsBmp);
+-
+     /* Set new setting */
+     if (portNum == QSFP_PORTS_FANOUT[0])
+     {
+-        if (flag_qsfp_fan_out == 0)
++        if (flag_qsfp_fan_out == 0)    /* 40,100G -> 10,25,40,50,100G */
+         {
+             if (speed == 10 || speed == 25)
+             {
+@@ -1038,8 +1227,13 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+                     CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, portNum);
+             }
+         }
+-        else if (flag_qsfp_fan_out == 1 && speed == 50)
++        else if (flag_qsfp_fan_out_50g == 0 && speed == 50)    /* 10,25G -> 50G */
+         {
++            if ( APPDEMO_MODE == APPDEMO_MODE_LEGACY )
++            {
++                Clear_Port_Speed(portNum);   /* Erase old fan-out setting first */
++            }
++
+             for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
+             {
+                 if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
+@@ -1048,7 +1242,7 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+                     CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, p);
+             }
+         }
+-        else if (flag_qsfp_fan_out_50g == 1 && (speed == 10 || speed == 25))
++        else if (flag_qsfp_fan_out_50g == 1 && (speed == 10 || speed == 25))    /* 50G -> 10,25G */
+         {
+             for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p++)
+             {
+@@ -1058,12 +1252,33 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+                     CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, p);
+             }
+         }
+-        else
++        else    /* 10,25G -> 25,10,40,100G  or  50G -> 40,100 */
+         {
+             if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
+-                Port_Attr_Set_Then_Enable(portNum, port_if, port_speed, portMgrData.fecType);
++            {
++                if (flag_qsfp_fan_out_50g == 0 && (speed == 10 || speed == 25))    /* 25,10G -> 10,25G */
++                {
++                    for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p++)
++                    {
++                        Port_Attr_Set_Then_Enable(p, port_if, port_speed, portMgrData.fecType);
++                    }
++                }
++                else
++                    Port_Attr_Set_Then_Enable(portNum, port_if, port_speed, portMgrData.fecType);
++            }
+             else
+-                CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, portNum);
++            {
++                Clear_Port_Speed(portNum);   /* Erase old fan-out setting first */
++                if (speed == 10 || speed == 25)
++                {
++                    for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p++)
++                    {
++                        CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, p);
++                    }
++                }
++                else
++                    CPSS_PORTS_BMP_PORT_SET_MAC(&portsBmp, portNum);
++            }
+         }
+     }
+     else
+@@ -1079,23 +1294,11 @@ GT_STATUS Set_Port_Speed(int portNum, int speed)
+         cpssDxChPortModeSpeedSet(DEVNUM, &portsBmp, GT_TRUE, port_if, port_speed);
+         usleep(ACTION_DELAY);
+ 
+-        if (portNum == QSFP_PORTS_FANOUT[0])
+-        {
+-            if (speed == 100 || speed == 40)
+-                Port_RX_Training(portNum);
+-            else if (speed == 50)
+-            {
+-                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p += 2)
+-                    Port_RX_Training(p);
+-            }
+-            else
+-            {
+-                for (p = QSFP_PORTS_FANOUT[0] ; p <= QSFP_PORTS_FANOUT[3] ; p++)
+-                    Port_RX_Training(p);
+-            }
+-        }
+-        else
+-            Port_RX_Training(portNum);
++        /* Tx setting */
++        Do_Port_Tx_Setting(portNum, speed, cable_interface);
++
++        /* Rx training */
++        Port_RX_Training(portNum);
+     }
+ 
+     return GT_OK;
+@@ -2309,7 +2512,7 @@ GT_STATUS Pre_Config_Check_And_Set(void)
+     int rv = 0;
+     FILE *normal_param_file;
+     char normal_param[64];
+-    int p = 0, user_mode = 0, speed_sfp = 0, speed_qsfp = 0, interface_type = 0, vlan_mode = 0, fec_mode = 0;
++    int p = 0, user_mode = 0, speed_sfp = 25, speed_qsfp = 100, interface_type = 1, vlan_mode = 0, fec_mode = 0;    /* default value defined */
+     char linux_action[256]={0};
+ 
+     memset(linux_action, 0x0, sizeof(linux_action));
+@@ -2332,11 +2535,8 @@ GT_STATUS Pre_Config_Check_And_Set(void)
+                     strtok(normal_param, "=");
+                     user_mode = atoi(strtok(NULL, "="));
+                     printf("   mode : %d\n", user_mode);
+-                    if ( user_mode == 1 )    /* APPDEMO_MODE_PORTMGR */
+-                    {
+-                        APPDEMO_MODE = 1;
+-                    }
+-                    Write_AppDemo_Mode();
++                    if ( user_mode == 1 )
++                        rv = appDemoDbEntryAdd("portMgr", 1);
+                 }else if (0 != strstr(normal_param, "QSFP")) {
+                     strtok(normal_param, "=");
+                     speed_qsfp = atoi(strtok(NULL, "="));
+@@ -2376,10 +2576,7 @@ GT_STATUS Pre_Config_Check_And_Set(void)
+         /**** Start to auto initialize, and depends on request mode. ****/
+         Read_AppDemo_Mode_Note();
+         if ( APPDEMO_MODE == APPDEMO_MODE_PORTMGR )
+-        {
+-            rv = appDemoDbEntryAdd("portMgr", 1);
+             printf("\n  Entry Add 'portMgr mode' Done(%d)\n\n", rv);
+-        }
+         else
+             printf("\n  Using Legecy mode\n\n");
+ 
+@@ -2394,19 +2591,15 @@ GT_STATUS Pre_Config_Check_And_Set(void)
+ 
+         /**** Start to configure if user have requirement ****/
+         /* Ports' speed */
+-        if (speed_sfp != 0)
++        for( p = 1 ; p < SFP_AMOUNT ; p++ )
+         {
+-            for( p = 1 ; p < SFP_AMOUNT ; p++ )
+-            {
+-                Set_Port_Speed(SFP_MAC_PORTS[p], speed_sfp);
+-                usleep(ACTION_DELAY);
+-            }
+-        }
+-        if (speed_qsfp != 0)
+-        {
+-            Set_Port_Speed(QSFP_PORTS_FANOUT[0], speed_qsfp);
++            Set_Port_Speed(SFP_MAC_PORTS[p], speed_sfp, interface_type);
+             usleep(ACTION_DELAY);
+         }
++
++        Set_Port_Speed(QSFP_PORTS_FANOUT[0], speed_qsfp, interface_type);
++        usleep(ACTION_DELAY);
++
+         sleep(1);    /* add to make port disable longer try to make rx-tune smoothly */
+ 
+         /* FEC */
+-- 
+2.7.4
+
