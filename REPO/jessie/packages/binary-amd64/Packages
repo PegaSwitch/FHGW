@@ -1,13 +1,13 @@
 Package: linuxptp
-Version: 3.0
+Version: 3.2.0
 Architecture: amd64
 Maintainer: support@bigswitch.com
-Installed-Size: 350
-Filename: ./linuxptp_3.0_amd64.deb
-Size: 128138
-MD5sum: 7caabbd8a10ffc3efb14ede5b1a40fb3
-SHA1: 4e11b8a72978a854ff67b15be295b29ebf4ad13d
-SHA256: dfd0a249866c9b980052b576fd92f46c91a65ff429f897186a5dcc24e901b189
+Installed-Size: 352
+Filename: ./linuxptp_3.2.0_amd64.deb
+Size: 129724
+MD5sum: 9cc260a79e2d1e1905591a0ae9c44529
+SHA1: 2b3ab2e4c1401c176885e763676e7e380d51fc5e
+SHA256: e5551ac6c4cfd81b3404ef363df3208a43ee13ff2d4d5df8c08a0c5d0bbcc261
 Section: default
 Priority: extra
 Homepage: http://opennetlinux.org
@@ -16,17 +16,18 @@ Description: Manufacture Uitilities Package
 License: unknown
 Vendor: Open Network Linux
 
+
 Package: onl-platform-modules-ptp-x86-64-pegatron-fm-6609-bn-ff
-Version: 1.0.0
+Version: 1.0.2
 Architecture: amd64
 Maintainer: support@bigswitch.com
-Installed-Size: 141
+Installed-Size: 253
 Depends: onl-vendor-pegatron-modules
-Filename: ./onl-platform-modules-ptp-x86-64-pegatron-fm-6609-bn-ff_1.0.0_amd64.deb
-Size: 51086
-MD5sum: a3df3bb9f798f59aae888591d6b13e19
-SHA1: 9aa6deed0964c0bfac0bf0ca44fc1353a0de9374
-SHA256: f7a36608841ee73a2880e31821b48125f8c3e06fba101eec5eafdab632c9adbc
+Filename: ./onl-platform-modules-ptp-x86-64-pegatron-fm-6609-bn-ff_1.0.2_amd64.deb
+Size: 63176
+MD5sum: d164a00b76759408b150b75307291233
+SHA1: 1b643a9353eec5a09010eb49153e8c4d522f8472
+SHA256: 949427f81b74f73f3aaa64de061b383366c3cb6173d5358c9859c8add867fa9e
 Section: default
 Priority: extra
 Homepage: http://opennetlinux.org
@@ -34,3 +35,4 @@ Description: ONL Platform Modules Package for the ptp-x86-64-pegatron-fm-6609-bn
  ONL Platform Modules Package for the ptp-x86-64-pegatron-fm-6609-bn-ff
 License: unknown
 Vendor: Open Network Linux
+
